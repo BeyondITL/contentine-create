@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Contentine Create — example IIS web.config for the webroot (frontend/out/).
+     Sets cross-origin isolation, blocks backend source, routes /api to the PHP
+     shim, and provides the SPA fallback. Requires URL Rewrite + a PHP handler. -->
+<configuration>
+  <system.webServer>
+    <httpProtocol>
+      <customHeaders>
+        <add name="Cross-Origin-Opener-Policy"   value="same-origin" />
+        <add name="Cross-Origin-Embedder-Policy" value="require-corp" />
+        <add name="X-Content-Type-Options"       value="nosniff" />
+        <add name="Referrer-Policy"              value="strict-origin-when-cross-origin" />
+      </customHeaders>
+    </httpProtocol>
+    <rewrite>
+      <rules>
+        <rule name="Block backend source" stopProcessing="true">
+          <match url="^(backend|database)(/|$)" />
+          <action type="CustomResponse" statusCode="403" statusReason="Forbidden" />
+        </rule>
+        <rule name="API to PHP shim" stopProcessing="true">
+          <match url="^api/(.*)$" />
+          <action type="Rewrite" url="api/index.php" appendQueryString="true" />
+        </rule>
+        <rule name="SPA fallback" stopProcessing="true">
+          <match url=".*" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/index.html" />
+        </rule>
+      </rules>
+    </rewrite>
+  </system.webServer>
+</configuration>

@@ -114,6 +114,7 @@ export default function StoragePanel() {
   const handleUseBrowser = async () => {
     setBusy('browser');
     try {
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- store action, not a React hook
       await useBrowserStorage();
       await checkAllStatuses();
       await refresh();

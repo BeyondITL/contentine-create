@@ -17,7 +17,7 @@
 
 **Generate scripts, voices, avatars, and animated video — in the browser, on your own device, with no server GPU.**
 
-[Quick start](#quick-start) · [What works today](#what-works-today) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
+[Quick start](#quick-start) · [What works today](#what-works-today) · [Deploy](DEPLOYMENT.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -107,6 +107,10 @@ docs/          Engineering, UI/UX, and implementation specs
 - **Backend (optional):** PHP 8 front-controller (`backend/public/index.php`), PSR-4 `Contentine\` namespace, MySQL. Non-blocking sync/commerce only.
 
 Full detail: [`ARCHITECTURE.md`](ARCHITECTURE.md) and [`docs/ENGINEERING_SPEC.md`](docs/ENGINEERING_SPEC.md).
+
+## Deployment
+
+It's a static frontend (`frontend/out/`) plus an optional PHP backend, so it deploys on almost anything — shared host, VPS, container, or a static CDN paired with any PHP host. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the full, vendor-neutral guide, with ready-to-edit configs for Apache (`.htaccess`), [Nginx](deploy/nginx.conf.example), and [IIS](deploy/web.config.example). The one hard requirement is cross-origin isolation (`COOP: same-origin` + `COEP: require-corp`) for the in-browser engines.
 
 ## Models & licenses
 

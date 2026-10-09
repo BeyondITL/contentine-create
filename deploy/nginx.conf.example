@@ -1,0 +1,48 @@
+# Contentine Create — example Nginx config (edit to taste).
+# Serves the static export (frontend/out/) with cross-origin isolation,
+# an SPA fallback, and an /api passthrough to the PHP backend.
+
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com;
+
+    # ssl_certificate     /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+    root /var/www/yourapp;          # <-- contents of frontend/out/
+    index index.html;
+
+    # Required for SharedArrayBuffer / WebGPU engines:
+    add_header Cross-Origin-Opener-Policy   "same-origin"   always;
+    add_header Cross-Origin-Embedder-Policy "require-corp"  always;
+    add_header X-Content-Type-Options       "nosniff"       always;
+    add_header Referrer-Policy              "strict-origin-when-cross-origin" always;
+
+    # Never serve backend source directly.
+    location ~ ^/(backend|database)/ { deny all; return 404; }
+
+    # API -> PHP backend (sibling of the webroot).
+    location /api/ {
+        root /var/www/backend/public;   # index.php is the front controller
+        try_files $uri /index.php$is_args$args;
+        location ~ \.php$ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.2-fpm.sock;   # match your PHP-FPM socket
+            fastcgi_param SCRIPT_FILENAME $document_root/index.php;
+            # Pass the Authorization header through to PHP:
+            fastcgi_param HTTP_AUTHORIZATION $http_authorization;
+        }
+    }
+
+    # Static assets with long cache; SPA fallback for everything else.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+
+# Optional: redirect http -> https
+server {
+    listen 80;
+    server_name yourdomain.com;
+    return 301 https://$host$request_uri;
+}
