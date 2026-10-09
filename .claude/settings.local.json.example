@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy to settings.local.json (gitignored) for personal overrides, e.g. defaultMode.",
+  "permissions": { "defaultMode": "acceptEdits" }
+}

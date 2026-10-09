@@ -1,0 +1,45 @@
+RewriteEngine On
+
+# --- HTTPS redirect ---
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# --- DreamHost: pass Authorization header to PHP (BUG-003 fix) ---
+RewriteCond %{HTTP:Authorization} ^(.*)$
+RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# --- Security Headers ---
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# --- Static files: serve directly (MUST be before SPA fallback) ---
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# --- API Routes -> PHP backend ---
+RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
+
+# --- SPA fallback: everything else -> index.html ---
+RewriteRule ^ index.html [L]
+
+# --- GZIP compression ---
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# --- Cache static assets ---
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType application/wasm "access plus 1 year"
+    ExpiresByType application/octet-stream "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>

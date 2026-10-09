@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "_comment": "INERT EXAMPLE. Does nothing until you review it and rename it to .mcp.json. Every MCP server is code that runs on your machine with your credentials: add only servers you trust, and PIN VERSIONS (never @latest). .mcp.json is gitignored.",
+  "mcpServers": {
+    "_example_graphify": {
+      "_comment": "Rename to 'graphify' to enable the knowledge-graph MCP. Pin the version you install.",
+      "command": "npx",
+      "args": ["-y", "@graphify-labs/graphify-mcp@<pin-a-version>"]
+    },
+    "_example_playwright": {
+      "_comment": "Rename to 'playwright' to enable browser E2E. Check the current version and pin it.",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@0.0.41"]
+    }
+  }
+}

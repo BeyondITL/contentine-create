@@ -1,0 +1,24 @@
+# CLAUDE.local.md (template)
+
+Copy this to `CLAUDE.local.md` for private, per-machine notes. This file is
+**gitignored** and must never be committed.
+
+Use it for local conveniences only — never real secrets. It may *reference*
+where a secret lives, not contain it.
+
+## Local setup notes
+
+- Node version:
+- Browser used for WebGPU testing:
+- Backend running at: (e.g. http://localhost:8080)
+- `admin_config.php` location: (one directory above the webroot)
+
+## Secrets (references only — never values)
+
+- Stripe test keys: in `admin_config.php` / password manager
+- Auth0 app config: in `admin_config.php`
+- DB credentials: in `admin_config.php`
+
+## Scratchpad
+
+-

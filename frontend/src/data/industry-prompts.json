@@ -1,0 +1,206 @@
+[
+  {
+    "id": "real_estate",
+    "industry": "Real Estate",
+    "icon": "Home",
+    "description": "Property listings, virtual tours, market updates",
+    "prompts": {
+      "script": "Create an engaging property tour video script for a {features} property located in {location}, listed at {price}. Highlight the key selling points that would appeal to {audience} and include a compelling call-to-action to schedule a showing.",
+      "remix": "Repurpose this content into a real estate marketing piece that emphasizes property value, neighborhood appeal, and lifestyle benefits. Use language that builds urgency and positions the listing as a must-see opportunity for serious buyers.",
+      "thumbnail": "Design a stunning property showcase thumbnail featuring the home's best exterior or interior angle with bold text overlay showing the price and location. Use warm, inviting lighting and aspirational staging.",
+      "caption": "Write a scroll-stopping social media caption for a {features} property in {location} at {price}. Include neighborhood highlights, key amenities, and a direct call-to-action for {audience} to book a private tour."
+    }
+  },
+  {
+    "id": "fitness",
+    "industry": "Fitness & Gym",
+    "icon": "Dumbbell",
+    "description": "Workout tutorials, class promotions, transformations",
+    "prompts": {
+      "script": "Write an energetic video script demonstrating a {features} workout routine designed for {audience}. Break down each exercise with proper form cues, rep counts, and modifications, keeping the tone motivational and the pace dynamic.",
+      "remix": "Transform this content into fitness-focused material that motivates viewers to take action. Emphasize achievable results, proper technique, and the community aspect of training at {location}.",
+      "thumbnail": "Create a high-energy fitness thumbnail showing peak athletic movement with bold, contrasting text highlighting the workout type. Use dynamic angles and vibrant colors that convey intensity and results.",
+      "caption": "Write a motivational social media caption promoting a {features} workout or class at {location}. Speak directly to {audience}, highlight the benefits they will feel, and include a strong call-to-action to sign up or try a free session."
+    }
+  },
+  {
+    "id": "restaurant",
+    "industry": "Restaurant & Food",
+    "icon": "UtensilsCrossed",
+    "description": "Menu highlights, behind-the-kitchen, specials",
+    "prompts": {
+      "script": "Write a mouth-watering video script showcasing {features} from the menu at {location}. Describe the ingredients, cooking technique, and flavor profile in vivid detail that makes {audience} crave a visit, ending with a reservation call-to-action.",
+      "remix": "Repurpose this content into food-focused marketing that highlights culinary craftsmanship, fresh ingredients, and the dining experience. Make viewers taste the food through descriptive, sensory-rich language.",
+      "thumbnail": "Design an appetizing food thumbnail with a close-up, beautifully plated hero dish as the centerpiece. Use warm lighting, shallow depth of field, and minimal text that lets the food speak for itself.",
+      "caption": "Write an irresistible social media caption for {features} at {location}. Use sensory language that evokes taste, aroma, and texture, then invite {audience} to experience it in person with a reservation link or special offer at {price}."
+    }
+  },
+  {
+    "id": "ecommerce",
+    "industry": "E-commerce",
+    "icon": "ShoppingCart",
+    "description": "Product demos, unboxings, promotions",
+    "prompts": {
+      "script": "Create a persuasive product demo video script for {features}, priced at {price}. Walk {audience} through the unboxing experience, key features, and real-world usage, then close with a limited-time offer and direct purchase link.",
+      "remix": "Repurpose this content into a product-focused marketing piece that addresses customer pain points, demonstrates clear value, and drives purchase intent. Highlight what makes this product stand out from competitors.",
+      "thumbnail": "Create a clean, product-focused thumbnail with the item prominently displayed against a minimal background. Add a price badge or discount callout and use professional product photography styling.",
+      "caption": "Write a conversion-driven social media caption for {features} at {price}. Lead with the problem it solves for {audience}, showcase the top three benefits, and create urgency with a limited-time offer or free shipping mention."
+    }
+  },
+  {
+    "id": "saas",
+    "industry": "SaaS & Tech",
+    "icon": "Monitor",
+    "description": "Feature demos, tutorials, product updates",
+    "prompts": {
+      "script": "Write a clear, engaging demo video script for {features} that shows {audience} exactly how it solves their workflow problems. Walk through the key use case step-by-step, highlight time-saving benefits, and end with a free trial call-to-action.",
+      "remix": "Transform this content into a SaaS marketing piece that emphasizes ROI, ease of use, and competitive advantages. Translate technical features into business outcomes that resonate with {audience} decision-makers.",
+      "thumbnail": "Design a modern tech product thumbnail featuring a clean UI screenshot or product mockup with a bold headline describing the key benefit. Use the product's brand colors and a professional, trustworthy aesthetic.",
+      "caption": "Write a value-driven social media caption for {features} targeting {audience}. Lead with the specific pain point it eliminates, mention a concrete metric or time savings, and direct readers to start a free trial or watch the full demo."
+    }
+  },
+  {
+    "id": "education",
+    "industry": "Education",
+    "icon": "GraduationCap",
+    "description": "Course promos, lesson previews, student testimonials",
+    "prompts": {
+      "script": "Create an inspiring course promo video script for {features} designed for {audience}. Preview the key learning outcomes, share a compelling insight from the curriculum, and motivate viewers to enroll at {price} with a clear next step.",
+      "remix": "Repurpose this content into an educational marketing piece that positions the course as a career-changing investment. Emphasize practical skills, instructor credibility, and student success stories.",
+      "thumbnail": "Design an authoritative education thumbnail with a professional instructor image or course mockup, a clear course title, and a benefit-driven subtitle. Use clean typography and academic yet approachable styling.",
+      "caption": "Write an engaging social media caption promoting {features} for {audience}. Highlight what students will be able to do after completing the course, include a testimonial snippet or success stat, and direct them to enroll at {price}."
+    }
+  },
+  {
+    "id": "healthcare",
+    "industry": "Healthcare & Wellness",
+    "icon": "Heart",
+    "description": "Health tips, service explainers, patient stories",
+    "prompts": {
+      "script": "Write a reassuring and informative video script about {features} for {audience}. Explain the health topic in accessible, jargon-free language, provide actionable wellness tips, and guide viewers to book a consultation at {location}.",
+      "remix": "Transform this content into a patient-friendly health resource that educates without alarming. Use empathetic, trustworthy language that positions your practice as a caring authority in {features}.",
+      "thumbnail": "Create a warm, trustworthy healthcare thumbnail with calming colors, a professional medical setting or wellness imagery, and clear text describing the health topic. Avoid clinical sterility in favor of approachable warmth.",
+      "caption": "Write a caring social media caption about {features} for {audience}. Share one practical health tip, explain why it matters in everyday terms, and invite readers to learn more or schedule an appointment at {location}."
+    }
+  },
+  {
+    "id": "legal",
+    "industry": "Legal Services",
+    "icon": "Scale",
+    "description": "Legal tips, firm intro, case studies",
+    "prompts": {
+      "script": "Create a professional video script explaining {features} in plain language for {audience}. Demystify the legal process, share practical advice people can use today, and position your firm at {location} as the trusted guide for their case.",
+      "remix": "Repurpose this content into accessible legal education that builds trust and authority. Simplify complex legal concepts without dumbing them down, and always include a disclaimer and consultation call-to-action.",
+      "thumbnail": "Design a professional, authoritative legal thumbnail with scales of justice or gavel imagery, a clear topic headline, and the firm name. Use navy, burgundy, or dark green tones that convey trust and expertise.",
+      "caption": "Write an authoritative social media caption about {features} for {audience}. Share one actionable legal insight, explain a common misconception, and invite readers to schedule a free consultation at {location} for personalized advice."
+    }
+  },
+  {
+    "id": "financial",
+    "industry": "Financial & Accounting",
+    "icon": "DollarSign",
+    "description": "Financial tips, tax advice, market updates",
+    "prompts": {
+      "script": "Write an informative video script about {features} that helps {audience} make smarter financial decisions. Break down complex concepts into simple, actionable steps and include a call-to-action to schedule a financial review at {location}.",
+      "remix": "Transform this content into a financial education piece that builds credibility and trust. Use concrete numbers and real-world examples to illustrate key concepts, and always frame advice around the audience's specific financial goals.",
+      "thumbnail": "Create a professional finance thumbnail with upward-trending charts, currency symbols, or calculator imagery alongside a bold headline about the financial topic. Use green and navy tones that signal growth and stability.",
+      "caption": "Write an informative social media caption about {features} for {audience}. Lead with a surprising financial fact or common mistake, provide one actionable tip, and invite readers to get a personalized financial plan at {price}."
+    }
+  },
+  {
+    "id": "travel",
+    "industry": "Travel & Tourism",
+    "icon": "Plane",
+    "description": "Destination showcases, hotel tours, travel tips",
+    "prompts": {
+      "script": "Create a wanderlust-inducing video script showcasing {features} in {location}. Paint vivid imagery of the destination experience, share insider tips only locals know, and inspire {audience} to book their trip starting at {price}.",
+      "remix": "Repurpose this content into a travel inspiration piece that transports the reader to the destination. Use sensory details, practical travel tips, and authentic cultural insights that go beyond generic tourism marketing.",
+      "thumbnail": "Design a breathtaking travel thumbnail with a stunning destination photo, a location pin or map element, and aspirational text. Use vivid, saturated colors that capture the destination's unique atmosphere and energy.",
+      "caption": "Write a wanderlust-inspiring social media caption about {features} in {location}. Paint a mini escape in three sentences, include one insider tip that makes followers feel like they are getting exclusive knowledge, and share booking details starting at {price} for {audience}."
+    }
+  },
+  {
+    "id": "automotive",
+    "industry": "Automotive",
+    "icon": "Car",
+    "description": "Vehicle showcases, maintenance tips, dealership promos",
+    "prompts": {
+      "script": "Write an exciting vehicle showcase video script for {features} at {location}, starting at {price}. Highlight performance specs, interior luxury, and safety features that matter most to {audience}, ending with a test drive invitation.",
+      "remix": "Transform this content into automotive marketing that blends emotional appeal with practical specifications. Make the vehicle feel attainable yet aspirational, and emphasize the ownership experience beyond just the car itself.",
+      "thumbnail": "Create a sleek automotive thumbnail with a dramatic vehicle shot, dynamic lighting or motion blur, and bold model name and starting price text. Use dark backgrounds with metallic accents for a premium feel.",
+      "caption": "Write a compelling social media caption for {features} available at {location} starting at {price}. Highlight the top three features that {audience} care about most, create excitement around the driving experience, and invite them to schedule a test drive."
+    }
+  },
+  {
+    "id": "beauty",
+    "industry": "Beauty & Salon",
+    "icon": "Sparkles",
+    "description": "Tutorials, transformations, product reviews",
+    "prompts": {
+      "script": "Create a polished tutorial video script demonstrating {features} for {audience}. Walk through each step with product recommendations and pro tips, building from the base look to the finished transformation with a booking call-to-action at {location}.",
+      "remix": "Repurpose this content into beauty-focused marketing that educates and inspires. Blend tutorial value with product storytelling, and always show the transformation journey that makes viewers want to try it themselves.",
+      "thumbnail": "Design a glamorous beauty thumbnail with a striking before-and-after split or a flawless finished look close-up. Use soft, flattering lighting with bold text describing the technique or product featured.",
+      "caption": "Write a stunning social media caption for {features} at {location}. Describe the transformation in aspirational terms, tag the products or techniques used, and invite {audience} to book their own appointment starting at {price}."
+    }
+  },
+  {
+    "id": "construction",
+    "industry": "Construction & Home",
+    "icon": "Hammer",
+    "description": "Project showcases, before/after, tips",
+    "prompts": {
+      "script": "Write an impressive project showcase video script for {features} completed in {location}. Walk viewers through the before state, the construction process highlights, and the stunning after reveal, with a call-to-action to request a free estimate from {audience}.",
+      "remix": "Transform this content into a construction portfolio piece that demonstrates craftsmanship, attention to detail, and project management expertise. Use before-and-after framing to maximize visual impact and client confidence.",
+      "thumbnail": "Create a dramatic construction before-and-after thumbnail with a split-screen comparison, bold transformation text, and the project type clearly labeled. Use high-contrast imagery that makes the improvement unmistakable.",
+      "caption": "Write a proud social media caption showcasing {features} completed in {location}. Tell the transformation story in three sentences, highlight a specific challenge you overcame, and invite {audience} to get a free estimate starting at {price}."
+    }
+  },
+  {
+    "id": "pet_services",
+    "industry": "Pet Services",
+    "icon": "PawPrint",
+    "description": "Pet care tips, grooming showcases, adoption stories",
+    "prompts": {
+      "script": "Create a heartwarming video script about {features} for pet owners in {audience}. Share expert pet care advice, showcase your grooming or training services at {location}, and include an emotional hook that connects with animal lovers.",
+      "remix": "Repurpose this content into pet-focused marketing that tugs at heartstrings while demonstrating expertise. Combine adorable animal moments with practical care advice that positions your business as the go-to for loving pet parents.",
+      "thumbnail": "Design an adorable pet services thumbnail with a happy, well-groomed animal as the hero image, playful paw print accents, and warm text describing the service. Use bright, cheerful colors that convey love and care.",
+      "caption": "Write an irresistible social media caption about {features} at {location}. Lead with a relatable pet parent moment, share one expert care tip, and invite {audience} to treat their fur babies to your services starting at {price}."
+    }
+  },
+  {
+    "id": "event_planning",
+    "industry": "Event Planning",
+    "icon": "PartyPopper",
+    "description": "Event highlights, venue tours, planning tips",
+    "prompts": {
+      "script": "Write a captivating event highlight video script showcasing {features} at {location}. Capture the energy, decor details, and guest reactions that make events memorable, then invite {audience} to start planning their own celebration starting at {price}.",
+      "remix": "Transform this content into event inspiration that makes viewers imagine their own perfect celebration. Highlight design details, guest experiences, and seamless execution that demonstrates your planning expertise.",
+      "thumbnail": "Create an elegant event planning thumbnail with a beautifully decorated venue shot, festive lighting, and sophisticated text overlay with the event type. Use warm ambient tones that convey celebration and luxury.",
+      "caption": "Write a celebration-worthy social media caption for {features} at {location}. Paint the atmosphere in vivid detail, spotlight one unforgettable moment from the event, and invite {audience} to start planning their dream event with packages starting at {price}."
+    }
+  },
+  {
+    "id": "coaching",
+    "industry": "Coaching & Consulting",
+    "icon": "Target",
+    "description": "Client testimonials, expertise showcases, tips",
+    "prompts": {
+      "script": "Create a credibility-building video script about {features} for {audience}. Share a powerful client transformation story, deliver one high-value insight that demonstrates your expertise, and close with a call-to-action to book a discovery call at {location}.",
+      "remix": "Repurpose this content into thought leadership material that positions you as the definitive expert in your niche. Lead with results and client outcomes, then layer in your unique methodology that differentiates you from competitors.",
+      "thumbnail": "Design a professional coaching thumbnail with a confident headshot or speaking pose, a bold results-driven headline, and social proof elements like client count or success metric. Use clean, authoritative styling.",
+      "caption": "Write a thought-leadership social media caption about {features} for {audience}. Open with a counterintuitive insight or bold claim, back it up with a client result, and invite readers to book a free strategy session at {location} valued at {price}."
+    }
+  },
+  {
+    "id": "nonprofit",
+    "industry": "Non-Profit",
+    "icon": "HeartHandshake",
+    "description": "Impact stories, fundraising appeals, volunteer spotlights",
+    "prompts": {
+      "script": "Write an emotionally compelling video script about {features} that shows the real-world impact of your mission. Tell one beneficiary's story that puts a human face on the cause, share measurable outcomes, and inspire {audience} to contribute or volunteer at {location}.",
+      "remix": "Transform this content into a powerful impact narrative that moves people from awareness to action. Balance emotional storytelling with concrete data, and always connect individual stories to the larger mission that donors and volunteers are supporting.",
+      "thumbnail": "Create an inspiring non-profit thumbnail with authentic human imagery showing impact in action, a mission-driven headline, and your organization's branding. Use warm, hopeful colors that convey positive change and community.",
+      "caption": "Write a heartfelt social media caption about {features} for {audience}. Share one real impact story in three sentences, include a specific metric that shows what donations achieve, and provide a direct link to donate or volunteer at {location} with amounts starting at {price}."
+    }
+  }
+]

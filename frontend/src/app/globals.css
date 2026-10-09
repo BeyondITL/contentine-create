@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#F7F8FA] dark:bg-dark text-text dark:text-[#E0E0E0] antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Refined scrollbar — barely visible until hover */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-black/[0.06] rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-black/[0.12]; }
+
+  /* Better selection color */
+  ::selection {
+    background: rgba(0, 195, 255, 0.15);
+    color: inherit;
+  }
+}
+
+@layer components {
+  /* ── Buttons — 44px min-height on mobile, dark mode, focus-visible ring ── */
+  .btn-primary {
+    @apply bg-[#0A0A0A] hover:bg-[#1A1A1A] dark:bg-white dark:hover:bg-[#E8E8E8] text-white dark:text-[#0A0A0A] px-4 py-2.5 min-h-[44px] md:min-h-0 rounded-xl text-[14px] md:text-[13px] font-semibold transition-all duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.12);
+  }
+
+  .btn-secondary {
+    @apply bg-white hover:bg-[#F7F8FA] dark:bg-dark-secondary dark:hover:bg-[#333] text-text dark:text-[#E0E0E0] px-4 py-2.5 min-h-[44px] md:min-h-0 rounded-xl text-[14px] md:text-[13px] font-medium transition-all duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .btn-secondary:hover {
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+  }
+
+  .btn-accent {
+    @apply bg-accent/90 hover:bg-accent text-white px-4 py-2.5 min-h-[44px] md:min-h-0 rounded-xl text-[14px] md:text-[13px] font-semibold transition-all duration-200 shadow-sm shadow-accent/20 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none;
+  }
+  .btn-success {
+    @apply bg-secondary hover:bg-secondary-hover text-white px-4 py-2.5 min-h-[44px] md:min-h-0 rounded-xl text-[14px] md:text-[13px] font-semibold transition-all duration-200 shadow-sm shadow-secondary/20 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none;
+  }
+  .btn-ghost {
+    @apply hover:bg-black/[0.04] dark:hover:bg-white/[0.04] text-text-secondary dark:text-[#AAA] px-3.5 py-2.5 min-h-[44px] md:min-h-0 rounded-xl text-[14px] md:text-[13px] font-medium transition-all duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none;
+  }
+  .btn-danger {
+    @apply bg-danger hover:bg-danger/90 text-white px-4 py-2.5 min-h-[44px] md:min-h-0 rounded-xl text-[14px] md:text-[13px] font-semibold transition-all duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none;
+  }
+
+  /* ── Bento card — the hero element ── */
+  .bento-card {
+    @apply bg-white dark:bg-dark-secondary rounded-2xl transition-all duration-300;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow:
+      0 0 0 0.5px rgba(0, 0, 0, 0.03),
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 2px 6px rgba(0, 0, 0, 0.02);
+  }
+  .bento-card:hover {
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow:
+      0 0 0 0.5px rgba(0, 0, 0, 0.04),
+      0 2px 4px rgba(0, 0, 0, 0.04),
+      0 8px 24px rgba(0, 0, 0, 0.05);
+    @apply -translate-y-[1px];
+  }
+
+  /* ── Card with gradient border accent ── */
+  .bento-card-glow {
+    @apply bg-white dark:bg-dark-secondary rounded-2xl transition-all duration-300 relative;
+    box-shadow:
+      0 0 0 0.5px rgba(0, 0, 0, 0.03),
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 2px 6px rgba(0, 0, 0, 0.02);
+  }
+  .bento-card-glow::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(0,195,255,0.15), rgba(243,166,255,0.15), rgba(53,200,56,0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .bento-card-glow:hover::before {
+    opacity: 1;
+  }
+  .bento-card-glow:hover {
+    box-shadow:
+      0 0 0 0.5px rgba(0, 0, 0, 0.04),
+      0 2px 4px rgba(0, 0, 0, 0.04),
+      0 8px 24px rgba(0, 0, 0, 0.05);
+    @apply -translate-y-[1px];
+  }
+
+  /* ── Legacy card ── */
+  .card {
+    @apply bg-white dark:bg-dark-secondary rounded-2xl border border-black/[0.06] dark:border-white/[0.06] p-6;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.02);
+  }
+
+  /* ── Input field — 44px min-height on mobile, 16px font to prevent iOS zoom ── */
+  .input-field {
+    @apply w-full px-3.5 py-3 min-h-[44px] md:min-h-0 md:py-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-white dark:bg-dark-secondary text-text dark:text-[#E0E0E0] text-[16px] md:text-[13px] placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary/30 transition-all duration-200;
+  }
+
+  /* ── Badges — slightly larger on mobile for readability ── */
+  .badge {
+    @apply px-2.5 py-1 md:px-2 md:py-0.5 rounded-lg md:rounded-md text-[12px] md:text-[10px] font-semibold tracking-wide;
+  }
+  .badge-success { @apply badge bg-emerald-50 text-emerald-600 dark:bg-secondary/15 dark:text-secondary; }
+  .badge-warning { @apply badge bg-amber-50 text-amber-600 dark:bg-warning/15 dark:text-warning; }
+  .badge-info { @apply badge bg-primary-bg text-primary dark:bg-info/15 dark:text-info; }
+  .badge-accent { @apply badge bg-accent-bg text-purple-600 dark:bg-accent/15 dark:text-accent; }
+}
+
+/* ── Logo animations ── */
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0) rotateY(0deg); }
+  25% { transform: translateY(-1.5px) rotateY(2deg); }
+  50% { transform: translateY(-0.5px) rotateY(0deg); }
+  75% { transform: translateY(-2px) rotateY(-2deg); }
+}
+@keyframes logoPulseGlow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.15); }
+}
+
+/* ── Gradient mesh drift for hero ── */
+@keyframes meshDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(15px, -10px) scale(1.05); }
+  66% { transform: translate(-10px, 15px) scale(0.95); }
+}
+
+/* ── Shimmer for AI features ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.ai-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 30%, rgba(243,166,255,0.06) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Noise texture overlay for hero ── */
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* ── Subtle dot pattern ── */
+.dot-pattern {
+  background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* ── Scrollbar hide utility ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area for notched devices */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.env-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

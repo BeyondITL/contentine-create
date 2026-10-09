@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "Secure defaults: edits prompt (flip defaultMode to acceptEdits once trusted), git push always prompts, no MCP servers enabled (see mcp.json.example), WebFetch/WebSearch not pre-allowed.",
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Bash(cd frontend && npm run lint)",
+      "Bash(cd frontend && npm run build)",
+      "Bash(cd frontend && npm test)",
+      "Bash(cd backend && composer test)",
+      "Bash(php -l:*)",
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "ask": [
+      "Bash(git push:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": ".claude/hooks/session-start.sh", "timeout": 10 } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Bash", "hooks": [ { "type": "command", "command": ".claude/hooks/pre-deploy-guard.sh", "timeout": 120 } ] },
+      { "matcher": "Write|Edit", "hooks": [ { "type": "command", "command": ".claude/hooks/anti-facade.sh", "timeout": 15 } ] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Write|Edit", "hooks": [ { "type": "command", "command": ".claude/hooks/post-edit-format.sh", "timeout": 60 } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": ".claude/hooks/stop-verify.sh", "timeout": 600 } ] }
+    ]
+  }
+}

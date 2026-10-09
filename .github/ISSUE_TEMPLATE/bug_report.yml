@@ -1,0 +1,30 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you expected vs. what actually happened.
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to …
+        2. Click …
+        3. See …
+    validations: { required: true }
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: Browser + version, OS, and whether WebGPU is available (chrome://gpu).
+    validations: { required: true }
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Console errors, a failing output file, or screenshots.

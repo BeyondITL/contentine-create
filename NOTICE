@@ -1,0 +1,44 @@
+Contentine Create
+Copyright (c) 2026 BeyondITL
+
+This product is licensed under the GNU Affero General Public License v3.0
+(see LICENSE). The notice below concerns THIRD-PARTY AI MODELS and libraries
+that Contentine Create orchestrates. Their weights/code are NOT redistributed
+in this repository; scripts/setup-assets.sh downloads them from their official
+sources. Each keeps its own license and obligations. The authoritative,
+per-model ledger is LICENSES.md — read it before enabling any model.
+
+Key obligations and gates
+--------------------------
+
+Stability AI models (SD-Turbo image generation; any Stable Video Diffusion
+derivative such as AniDoc):
+  Licensed under the STABILITY AI COMMUNITY LICENSE. If you enable these:
+    * Free commercial use only for organizations with annual revenue under
+      US $1,000,000; you MUST register at https://stability.ai/community-license
+    * You MUST display: "Powered by Stability AI"
+    * You MUST include: "This Stability AI Model is licensed under the
+      Stability AI Community License, Copyright (c) Stability AI Ltd.
+      All Rights Reserved."
+    * The license is revocable and terminates above US $1,000,000 revenue.
+  These models ship DISABLED by default via NEXT_PUBLIC_IMAGE_GEN_ENABLED.
+  Enabling them is an explicit operator decision — do not flip the flag
+  without meeting the obligations above.
+
+Meta Llama 3.x (via WebLLM, if used): Meta Llama 3 Community License —
+  attribution and Acceptable Use Policy apply; "Built with Llama" where required.
+
+Apache-2.0 models (Kokoro TTS, OpenF5-TTS-Base, Transformers.js, WebLLM runtime,
+Qwen builds, etc.) and MIT models (Whisper, Moonshine, SmolVLM/Florence-2,
+Silero VAD, etc.): used under their respective licenses; attribution retained.
+
+GSAP and plugins: GreenSock "no charge" license (free for commercial use);
+  not an OSI license — see LICENSES.md.
+
+BANNED from production (recorded here so nobody re-adds them): official F5-TTS
+checkpoints (CC-BY-NC), XTTS v2 (CPML-NC), CogVideoX-5B-based video models
+(custom restrictive license), and any unverified re-upload of the above.
+
+All character designs, rig packs, preset names, demo media, and bundled music
+in this repository are original works or CC0 — no third-party show/character/IP
+references. See LICENSES.md for the per-asset record.

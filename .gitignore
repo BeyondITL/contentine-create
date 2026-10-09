@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+frontend/out/
+frontend/.next/
+frontend/coverage/
+
+# Environment (NEVER commit real values)
+.env
+.env.local
+.env.production
+backend/.env
+admin_config.php
+frontend/.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Test
+test-results/
+playwright-report/
+
+# OS
+Thumbs.db
+.DS_Store
+._*
+
+# Binary assets — re-download with scripts/setup-assets.sh
+frontend/public/wasm/
+frontend/public/models/
+frontend/public/workers/
+
+# Deployment artifacts
+*.zip
+backups/
+
+# Local overrides & dev tooling
+CLAUDE.local.md
+.claude/settings.local.json
+graphify-out/
+.graphify_python
+.graphify/
+# model-mirror test lane artifacts
+mirror/
+.mirror-tls/
+mcp.json
+.claude/verify-on-stop
+*.tar.gz
+internal-docs*

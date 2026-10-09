@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contentine Brand Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #F6F8FA; color: #171717; padding: 40px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  h2 { font-size: 20px; font-weight: 600; margin: 40px 0 16px; color: #636E7B; }
+  p { font-size: 14px; color: #636E7B; line-height: 1.5; }
+
+  .logo-section { display: flex; align-items: center; gap: 24px; margin-bottom: 40px; padding: 32px; background: white; border-radius: 16px; border: 1px solid #E8EAED; }
+  .logo-section svg { width: 80px; height: auto; }
+  .logo-text { font-size: 36px; font-weight: 700; color: #00C3FF; letter-spacing: -0.5px; }
+  .logo-sub { font-size: 14px; color: #636E7B; margin-top: 4px; }
+
+  .palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .swatch { border-radius: 12px; overflow: hidden; border: 1px solid #E8EAED; }
+  .swatch-color { height: 72px; }
+  .swatch-info { padding: 10px 12px; background: white; }
+  .swatch-name { font-size: 11px; font-weight: 600; }
+  .swatch-hex { font-size: 11px; color: #8B949E; font-family: monospace; }
+
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+  .btn { padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+  .btn-primary { background: #00C3FF; color: white; }
+  .btn-primary:hover { background: #00A8DB; }
+  .btn-secondary { background: #E5F8FF; color: #00A8DB; border: 1px solid rgba(0,195,255,0.2); }
+  .btn-green { background: #35C838; color: white; }
+  .btn-green:hover { background: #2BAF2E; }
+  .btn-mauve { background: #F3A6FF; color: #171717; }
+  .btn-mauve:hover { background: #E88DF5; }
+  .btn-ghost { background: transparent; color: #636E7B; }
+  .btn-ghost:hover { background: #F6F8FA; }
+  .btn-danger { background: #E74C3C; color: white; }
+
+  .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0; }
+  .card { background: white; border-radius: 12px; border: 1px solid #E8EAED; padding: 20px; }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .card-desc { font-size: 13px; color: #636E7B; line-height: 1.4; }
+  .card-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; margin-top: 10px; }
+  .badge-green { background: #DEF7EC; color: #03543F; }
+  .badge-yellow { background: #FEF3C7; color: #92400E; }
+  .badge-cyan { background: #E5F8FF; color: #0090BA; }
+  .badge-mauve { background: #FDF0FF; color: #A855C0; }
+
+  .input-row { display: flex; gap: 12px; margin: 16px 0; align-items: center; }
+  .input { padding: 10px 14px; border-radius: 10px; border: 1px solid #D0D7DE; background: #F6F8FA; font-size: 14px; font-family: inherit; color: #171717; width: 300px; outline: none; transition: all 0.2s; }
+  .input:focus { border-color: #00C3FF; box-shadow: 0 0 0 3px rgba(0,195,255,0.15); }
+  .input::placeholder { color: #8B949E; }
+
+  .dark-preview { background: #171717; border-radius: 16px; padding: 32px; margin: 16px 0; }
+  .dark-preview h3 { color: #E0E0E0; font-size: 16px; font-weight: 600; }
+  .dark-preview p { color: #8B949E; }
+  .dark-preview .card { background: #1E1E1E; border-color: #333333; }
+  .dark-preview .card-title { color: #E0E0E0; }
+  .dark-preview .card-desc { color: #8B949E; }
+
+  .nav-preview { background: white; border-radius: 12px; border: 1px solid #E8EAED; overflow: hidden; margin: 16px 0; }
+  .nav-top { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #E8EAED; gap: 16px; }
+  .nav-brand { font-size: 18px; font-weight: 700; color: #00C3FF; }
+  .nav-search { flex: 1; margin: 0 24px; padding: 8px 14px; border-radius: 8px; border: 1px solid #D0D7DE; background: #F6F8FA; font-size: 13px; color: #8B949E; }
+  .nav-body { display: flex; min-height: 320px; }
+  .nav-sidebar { width: 200px; border-right: 1px solid #E8EAED; padding: 12px 0; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 16px; font-size: 13px; color: #636E7B; cursor: pointer; }
+  .nav-item:hover { background: #F6F8FA; }
+  .nav-item.active { background: #E5F8FF; color: #00A8DB; font-weight: 500; border-right: 2px solid #00C3FF; }
+  .nav-main { flex: 1; padding: 24px; }
+
+  .trio { display: flex; gap: 16px; margin: 16px 0; }
+  .trio-item { flex: 1; text-align: center; padding: 24px 16px; border-radius: 14px; border: 2px solid #E8EAED; }
+  .trio-label { font-size: 13px; font-weight: 600; margin-top: 10px; }
+  .trio-desc { font-size: 11px; color: #8B949E; margin-top: 4px; }
+  .trio-circle { width: 56px; height: 56px; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="logo-section">
+    <svg viewBox="0 0 512 377.32" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#00C3FF" d="M20.81,326.77c0.02,16.54,14.46,29.52,30.18,29.52l430.26,0.13l0.58-56.02c6.41-3.49,14.92-3.69,21.1,0.18l0.2,64.67c0.02,6.11-5.13,12.08-11.91,12.07L48.07,376.8c-26.54-0.03-48.09-23.66-48.07-49L0.19,47.16c0.02-26,24.5-47.03,48.88-47.05L158.48,0l329.5,0.13c8.06,0,15.14,1.57,15.09,11.39l-0.33,64.77c-4.25,4.96-15.11,5.46-20.82,0.94l-0.6-56.13L48.96,21.19c-16.99,0-28.44,15.44-28.42,30.71L20.81,326.77z"/>
+      <path fill="#00C3FF" d="M507.65,196.06c-21.83,22.67-44.81,41.68-72.66,54.96c-49.04,23.38-103.15,19.52-149.5-8.46c-20.76-12.53-37.69-27.71-56.49-46.06l-122.44,69.42c-1.97,1.12-6.53,1.08-8.22,0.15s-3.83-5.08-3.83-7.38l-0.08-139.07c0-2.98,2.54-7.76,4.83-8.32c2.35-0.57,7.47,0.22,10.06,1.67l119.62,67.01c19.13-18.41,37.74-35.45,60.4-48.17c51.1-28.68,110.66-28.17,160.98,1.88c22.18,13.24,40.66,29.6,58.45,48.48c1.21,1.28,2.99,4.72,3.19,6.33C512.22,190.44,509.88,193.75,507.65,196.06z M422.88,236.61c25.94-11.64,47.26-28.01,65.87-48.24c-18.45-19.93-38.54-34.7-61.54-46.5c-37.46-17.45-78.54-17.55-116.27-0.55c-23.48,11.87-44.19,26.76-63.16,46.84c19.05,20.68,41.08,37.13,66.6,48.7C349.49,252.17,386.87,252.21,422.88,236.61z"/>
+      <circle fill="#00C3FF" cx="368.22" cy="188.61" r="39.85"/>
+    </svg>
+    <div>
+      <div class="logo-text">Contentine</div>
+      <div class="logo-sub">AI-Powered Video Platform · Browser-First · Unlimited</div>
+    </div>
+  </div>
+
+  <h2>HeyGen's Exact Colors → Contentine</h2>
+  <div class="trio">
+    <div class="trio-item" style="border-color:#00C3FF;">
+      <div class="trio-circle" style="background:#00C3FF;color:white;">▶</div>
+      <div class="trio-label" style="color:#00C3FF;">Bright Turquoise</div>
+      <div class="trio-desc">#00C3FF · Primary · Logo, CTAs, nav</div>
+    </div>
+    <div class="trio-item" style="border-color:#35C838;">
+      <div class="trio-circle" style="background:#35C838;color:white;">✓</div>
+      <div class="trio-label" style="color:#35C838;">Apple Green</div>
+      <div class="trio-desc">#35C838 · Secondary · Publish, success</div>
+    </div>
+    <div class="trio-item" style="border-color:#F3A6FF;">
+      <div class="trio-circle" style="background:#F3A6FF;color:#171717;">✦</div>
+      <div class="trio-label" style="color:#D06AE8;">Mauve</div>
+      <div class="trio-desc">#F3A6FF · Accent · AI features, remix</div>
+    </div>
+  </div>
+
+  <h2>Full Palette</h2>
+  <div class="palette">
+    <div class="swatch"><div class="swatch-color" style="background:#00C3FF"></div><div class="swatch-info"><div class="swatch-name">Primary</div><div class="swatch-hex">#00C3FF</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#00A8DB"></div><div class="swatch-info"><div class="swatch-name">Primary Hover</div><div class="swatch-hex">#00A8DB</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#66DAFF"></div><div class="swatch-info"><div class="swatch-name">Primary Light</div><div class="swatch-hex">#66DAFF</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#E5F8FF"></div><div class="swatch-info"><div class="swatch-name">Primary BG</div><div class="swatch-hex">#E5F8FF</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#35C838"></div><div class="swatch-info"><div class="swatch-name">Green</div><div class="swatch-hex">#35C838</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#F3A6FF"></div><div class="swatch-info"><div class="swatch-name">Mauve</div><div class="swatch-hex">#F3A6FF</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#FDF0FF"></div><div class="swatch-info"><div class="swatch-name">Mauve BG</div><div class="swatch-hex">#FDF0FF</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#171717"></div><div class="swatch-info"><div class="swatch-name">Dark</div><div class="swatch-hex">#171717</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#636E7B"></div><div class="swatch-info"><div class="swatch-name">Text 2nd</div><div class="swatch-hex">#636E7B</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#E74C3C"></div><div class="swatch-info"><div class="swatch-name">Danger</div><div class="swatch-hex">#E74C3C</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#F39C12"></div><div class="swatch-info"><div class="swatch-name">Warning</div><div class="swatch-hex">#F39C12</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#FFFFFF;border:1px solid #E8EAED"></div><div class="swatch-info"><div class="swatch-name">White</div><div class="swatch-hex">#FFFFFF</div></div></div>
+  </div>
+
+  <h2>Buttons</h2>
+  <div class="btn-row">
+    <button class="btn btn-primary">Create Video</button>
+    <button class="btn btn-secondary">Save Draft</button>
+    <button class="btn btn-green">✓ Published</button>
+    <button class="btn btn-mauve">✦ AI Generate</button>
+    <button class="btn btn-ghost">Cancel</button>
+    <button class="btn btn-danger">Delete</button>
+  </div>
+
+  <h2>Inputs</h2>
+  <div class="input-row">
+    <input class="input" placeholder="Search videos, ideas, projects..." />
+    <button class="btn btn-primary">Search</button>
+  </div>
+
+  <h2>Cards & Badges</h2>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">🎬 Morning Routine Tips</div>
+      <div class="card-desc">Faceless video · 45 seconds · 9:16</div>
+      <span class="card-badge badge-green">✓ Published</span>
+    </div>
+    <div class="card">
+      <div class="card-title">🤖 AI Product Demo</div>
+      <div class="card-desc">Avatar video · 2 minutes · 16:9</div>
+      <span class="card-badge badge-yellow">⏳ Rendering</span>
+    </div>
+    <div class="card">
+      <div class="card-title">✦ Blog → 5 Platforms</div>
+      <div class="card-desc">Content Remix · 9 outputs</div>
+      <span class="card-badge badge-mauve">✦ Remix</span>
+    </div>
+  </div>
+
+  <h2>Dashboard Layout</h2>
+  <div class="nav-preview">
+    <div class="nav-top">
+      <svg viewBox="0 0 512 377.32" xmlns="http://www.w3.org/2000/svg" width="32">
+        <path fill="#00C3FF" d="M20.81,326.77c0.02,16.54,14.46,29.52,30.18,29.52l430.26,0.13l0.58-56.02c6.41-3.49,14.92-3.69,21.1,0.18l0.2,64.67c0.02,6.11-5.13,12.08-11.91,12.07L48.07,376.8c-26.54-0.03-48.09-23.66-48.07-49L0.19,47.16c0.02-26,24.5-47.03,48.88-47.05L158.48,0l329.5,0.13c8.06,0,15.14,1.57,15.09,11.39l-0.33,64.77c-4.25,4.96-15.11,5.46-20.82,0.94l-0.6-56.13L48.96,21.19c-16.99,0-28.44,15.44-28.42,30.71L20.81,326.77z"/>
+        <path fill="#00C3FF" d="M507.65,196.06c-21.83,22.67-44.81,41.68-72.66,54.96c-49.04,23.38-103.15,19.52-149.5-8.46c-20.76-12.53-37.69-27.71-56.49-46.06l-122.44,69.42c-1.97,1.12-6.53,1.08-8.22,0.15s-3.83-5.08-3.83-7.38l-0.08-139.07c0-2.98,2.54-7.76,4.83-8.32c2.35-0.57,7.47,0.22,10.06,1.67l119.62,67.01c19.13-18.41,37.74-35.45,60.4-48.17c51.1-28.68,110.66-28.17,160.98,1.88c22.18,13.24,40.66,29.6,58.45,48.48c1.21,1.28,2.99,4.72,3.19,6.33C512.22,190.44,509.88,193.75,507.65,196.06z M422.88,236.61c25.94-11.64,47.26-28.01,65.87-48.24c-18.45-19.93-38.54-34.7-61.54-46.5c-37.46-17.45-78.54-17.55-116.27-0.55c-23.48,11.87-44.19,26.76-63.16,46.84c19.05,20.68,41.08,37.13,66.6,48.7C349.49,252.17,386.87,252.21,422.88,236.61z"/>
+        <circle fill="#00C3FF" cx="368.22" cy="188.61" r="39.85"/>
+      </svg>
+      <span class="nav-brand">Contentine</span>
+      <div class="nav-search">Search videos, ideas, projects...</div>
+      <span style="font-size:18px;cursor:pointer;">🔔</span>
+      <div style="width:32px;height:32px;background:#00C3FF;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:600;">JD</div>
+    </div>
+    <div class="nav-body">
+      <div class="nav-sidebar">
+        <div class="nav-item active">📊 Dashboard</div>
+        <div class="nav-item">🎬 My Videos</div>
+        <div class="nav-item">🤖 Avatars</div>
+        <div class="nav-item">🎙 Voices</div>
+        <div class="nav-item">💡 Discover Ideas</div>
+        <div class="nav-item">📅 Schedule</div>
+        <div class="nav-item" style="color:#D06AE8;font-weight:500;">✦ Remix Hub</div>
+        <div class="nav-item">✍️ AI Writer</div>
+        <div class="nav-item">📊 Analytics</div>
+        <div class="nav-item">👥 Team</div>
+      </div>
+      <div class="nav-main">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:8px;">Welcome back, John 👋</h3>
+        <p style="margin-bottom:20px;">You have 3 videos rendering and 2 posts scheduled for today.</p>
+        <div class="btn-row">
+          <button class="btn btn-primary">🎬 New Video</button>
+          <button class="btn btn-mauve">✦ New Remix</button>
+          <button class="btn btn-ghost">💡 Find Ideas</button>
+        </div>
+        <div class="card-grid" style="margin-top:20px;">
+          <div class="card">
+            <div class="card-title">Recent Videos</div>
+            <div class="card-desc">12 videos this month</div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:#35C838;">Scheduled ✓</div>
+            <div class="card-desc">5 posts this week</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Total Views</div>
+            <div class="card-desc" style="font-size:20px;font-weight:700;color:#171717;">24.8K</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Dark Mode</h2>
+  <div class="dark-preview">
+    <h3 style="margin-bottom:12px;">HeyGen dark: #171717 base</h3>
+    <p style="margin-bottom:16px;">All three brand colors stay — turquoise, green, mauve. Backgrounds and text flip.</p>
+    <div class="btn-row">
+      <button class="btn btn-primary">Create Video</button>
+      <button class="btn" style="background:rgba(0,195,255,0.15);color:#66DAFF;border:1px solid rgba(0,195,255,0.3);">Save Draft</button>
+      <button class="btn btn-mauve">✦ Generate</button>
+      <button class="btn" style="background:transparent;color:#8B949E;">Cancel</button>
+    </div>
+    <div class="card-grid" style="margin-top:16px;">
+      <div class="card">
+        <div class="card-title">🎬 Video Project</div>
+        <div class="card-desc">Turquoise on dark</div>
+        <span class="card-badge" style="background:rgba(0,195,255,0.15);color:#66DAFF;">Draft</span>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:#35C838;">✓ Published</div>
+        <div class="card-desc">Green for success</div>
+        <span class="card-badge" style="background:rgba(53,200,56,0.15);color:#35C838;">Live</span>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:#F3A6FF;">✦ Remix Project</div>
+        <div class="card-desc">Mauve for AI features</div>
+        <span class="card-badge" style="background:rgba(243,166,255,0.15);color:#F3A6FF;">AI</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
