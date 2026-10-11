@@ -20,6 +20,7 @@ class StockController
 
     /** Supported sources and their media type capabilities. */
     private const SOURCE_CAPABILITIES = [
+        'openverse' => ['photo'],
         'pexels'    => ['photo', 'video'],
         'pixabay'   => ['photo', 'video'],
         'freesound' => ['audio'],
@@ -71,6 +72,10 @@ class StockController
         $cacheKey = md5("{$source}:{$type}:{$query}:{$page}:{$perPage}");
         $cached = $this->getCached($cacheKey);
         if ($cached !== null) {
+            // Entries cached before the proxy existed hold RAW cross-origin URLs,
+            // which COEP: require-corp blocks. Normalizing on read is idempotent and
+            // repairs stale cache without a flush.
+            $cached['items'] = array_map([$this, 'normalizeItem'], $cached['items'] ?? []);
             echo json_encode($cached);
             return;
         }
@@ -78,6 +83,7 @@ class StockController
         // Dispatch to the appropriate provider
         try {
             $results = match ($source) {
+                'openverse' => $this->searchOpenverse($query, $page, $perPage),
                 'pexels'    => $this->searchPexels($query, $type, $page, $perPage),
                 'pixabay'   => $this->searchPixabay($query, $type, $page, $perPage),
                 'freesound' => $this->searchFreesound($query, $page, $perPage),
@@ -88,6 +94,10 @@ class StockController
             echo json_encode(['error' => 'Failed to fetch results from stock provider']);
             return;
         }
+
+        // Route every media URL through the same-origin proxy so images/audio
+        // survive COEP: require-corp and the export canvas stays untainted.
+        $results['items'] = array_map([$this, 'normalizeItem'], $results['items'] ?? []);
 
         // Cache results
         $this->setCache($cacheKey, $results);
@@ -120,7 +130,7 @@ class StockController
         );
 
         if ($row) {
-            $item = json_decode($row['response_json'], true);
+            $item = $this->normalizeItem(json_decode($row['response_json'], true));
             echo json_encode([
                 'download_url' => $item['download_url'] ?? null,
                 'attribution'  => $item['attribution'] ?? null,
@@ -131,6 +141,7 @@ class StockController
         // Not cached — try to fetch the individual item from the provider
         try {
             $item = match ($source) {
+                'openverse' => $this->fetchOpenverseItem($itemId),
                 'pexels'    => $this->fetchPexelsItem($itemId),
                 'pixabay'   => $this->fetchPixabayItem($itemId),
                 'freesound' => $this->fetchFreesoundItem($itemId),
@@ -151,10 +162,164 @@ class StockController
         // Cache the individual item
         $this->setCache(md5("item:{$source}:{$itemId}"), $item);
 
+        $item = $this->normalizeItem($item);
         echo json_encode([
             'download_url' => $item['download_url'] ?? null,
             'attribution'  => $item['attribution'] ?? null,
         ]);
+    }
+
+    // ──────────────────────────────────────────────
+    // Same-origin media proxy
+    // ──────────────────────────────────────────────
+
+    /**
+     * GET /api/stock/proxy?url=... — Stream a remote stock asset from our own origin.
+     *
+     * Deliberately PUBLIC (no Auth::requireScope): <img>/<audio>/<video> tags cannot
+     * send the Authorization header, so an authed proxy could never load. Safety comes
+     * from SSRF hardening instead: only absolute http(s) URLs, the host must resolve to
+     * a PUBLIC IP, curl is pinned to that IP (defeats DNS-rebind), redirects are off,
+     * the response size is capped, and only image/* , video/* , audio/* pass through.
+     *
+     * Why it exists: the live origin serves `Cross-Origin-Embedder-Policy: require-corp`,
+     * which blocks every cross-origin subresource lacking a CORP header (all stock CDNs).
+     * Serving the bytes same-origin fixes the blank thumbnails AND keeps the WebCodecs
+     * export canvas untainted.
+     */
+    public function proxy(array $params, array $body): void
+    {
+        $target = $_GET['url'] ?? '';
+        if ($target === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'url is required']);
+            return;
+        }
+
+        $parts  = parse_url($target);
+        $scheme = strtolower($parts['scheme'] ?? '');
+        $host   = $parts['host'] ?? '';
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'Only absolute http(s) URLs are allowed']);
+            return;
+        }
+
+        // SSRF guard — require a public IP and pin curl to it.
+        $ip = $this->resolvePublicIp($host);
+        if ($ip === null) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Host is not publicly resolvable']);
+            return;
+        }
+
+        $port = (int) ($parts['port'] ?? ($scheme === 'https' ? 443 : 80));
+
+        $ch = curl_init($target);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,                       // no redirect-based SSRF bounce
+            CURLOPT_TIMEOUT        => 20,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_USERAGENT      => 'ContentineCreate/1.0 (+stock-proxy)',
+            CURLOPT_RESOLVE        => ["{$host}:{$port}:{$ip}"],   // pin DNS (anti-rebind)
+            CURLOPT_MAXFILESIZE    => 25 * 1024 * 1024,
+            CURLOPT_HEADER         => false,
+        ]);
+
+        $data        = curl_exec($ch);
+        $httpCode    = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $err         = curl_error($ch);
+        curl_close($ch);
+
+        if ($data === false || $httpCode >= 400) {
+            error_log("Stock proxy fetch failed ({$target}): HTTP {$httpCode} {$err}");
+            http_response_code(502);
+            echo json_encode(['error' => 'Upstream media fetch failed']);
+            return;
+        }
+
+        $mime = strtolower(trim(explode(';', $contentType)[0] ?? ''));
+        $isMedia = str_starts_with($mime, 'image/')
+            || str_starts_with($mime, 'video/')
+            || str_starts_with($mime, 'audio/');
+        if (!$isMedia) {
+            http_response_code(415);
+            echo json_encode(['error' => 'Upstream is not an allowed media type']);
+            return;
+        }
+
+        // Same-origin media response. Override the JSON Content-Type set in index.php.
+        header('Content-Type: ' . ($mime ?: 'application/octet-stream'));
+        header('Content-Length: ' . strlen($data));
+        header('Cache-Control: public, max-age=604800, immutable');
+        header('Cross-Origin-Resource-Policy: same-origin');
+        header('X-Content-Type-Options: nosniff');
+        echo $data;
+    }
+
+    /** Resolve a hostname to one PUBLIC IP (v4 or v6), or null if none are public. */
+    private function resolvePublicIp(string $host): ?string
+    {
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            return $this->isPublicIp($host) ? $host : null;
+        }
+
+        $ips = [];
+        $v4 = @gethostbynamel($host);
+        if (is_array($v4)) {
+            $ips = array_merge($ips, $v4);
+        }
+        $aaaa = @dns_get_record($host, DNS_AAAA);
+        if (is_array($aaaa)) {
+            foreach ($aaaa as $rec) {
+                if (!empty($rec['ipv6'])) {
+                    $ips[] = $rec['ipv6'];
+                }
+            }
+        }
+
+        foreach ($ips as $candidate) {
+            if ($this->isPublicIp($candidate)) {
+                return $candidate;
+            }
+        }
+        return null;
+    }
+
+    /** True when an IP is a normal, routable public address. */
+    private function isPublicIp(string $ip): bool
+    {
+        return filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        ) !== false;
+    }
+
+    /** Wrap one remote media URL so it is served through the same-origin proxy. Idempotent. */
+    private function proxied(string $url): string
+    {
+        if ($url === '' || str_starts_with($url, '/api/stock/proxy')) {
+            return $url;
+        }
+        if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+            return $url; // data:, blob:, relative — leave untouched
+        }
+        return '/api/stock/proxy?url=' . rawurlencode($url);
+    }
+
+    /** Return a copy of a stock item with its media URLs routed through the proxy. */
+    private function normalizeItem(array $item): array
+    {
+        if (isset($item['preview_url'])) {
+            $item['preview_url'] = $this->proxied((string) $item['preview_url']);
+        }
+        if (isset($item['download_url'])) {
+            $item['download_url'] = $this->proxied((string) $item['download_url']);
+        }
+        return $item;
     }
 
     // ──────────────────────────────────────────────
@@ -449,6 +614,111 @@ class StockController
         }
 
         return null;
+    }
+
+    // ──────────────────────────────────────────────
+    // Provider: Openverse (Creative Commons aggregator)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Search Openverse for commercially-usable CC/public-domain photos.
+     * Needs NO API key (anonymous works); an optional 'openverse' bearer token
+     * (free, instant registration) raises the rate limit when present.
+     */
+    private function searchOpenverse(string $query, int $page, int $perPage): array
+    {
+        $url = 'https://api.openverse.org/v1/images/?' . http_build_query([
+            'q'            => $query,
+            'page'         => $page,
+            'page_size'    => $perPage,
+            'license_type' => 'commercial', // only results cleared for commercial use
+            'category'     => 'photograph', // real photos, not logos/album art/clip-art
+            'mature'       => 'false',
+        ]);
+
+        $headers = $this->openverseHeaders();
+
+        $response = $this->httpGet($url, $headers);
+        $data = json_decode($response, true);
+
+        if (!$data) {
+            throw new \RuntimeException('Invalid response from Openverse');
+        }
+
+        $items = [];
+        foreach ($data['results'] ?? [] as $r) {
+            $item = [
+                'id'           => (string) ($r['id'] ?? ''),
+                'source'       => 'openverse',
+                'type'         => 'photo',
+                'title'        => $r['title'] ?? 'Openverse image',
+                'preview_url'  => $r['url'] ?? $r['thumbnail'] ?? '',
+                'download_url' => $r['url'] ?? '',
+                'attribution'  => $this->openverseAttribution($r),
+                'width'        => $r['width'] ?? null,
+                'height'       => $r['height'] ?? null,
+            ];
+            $items[] = $item;
+            if (!empty($r['id'])) {
+                $this->setCache(md5("item:openverse:{$r['id']}"), $item);
+            }
+        }
+
+        return [
+            'items'  => $items,
+            'total'  => (int) ($data['result_count'] ?? count($items)),
+            'page'   => $page,
+            'source' => 'openverse',
+            'type'   => 'photo',
+        ];
+    }
+
+    /** Fetch a single Openverse item by ID. */
+    private function fetchOpenverseItem(string $itemId): ?array
+    {
+        try {
+            $response = $this->httpGet(
+                'https://api.openverse.org/v1/images/' . rawurlencode($itemId) . '/',
+                $this->openverseHeaders()
+            );
+            $r = json_decode($response, true);
+            if ($r && isset($r['id'])) {
+                return [
+                    'id'           => (string) $r['id'],
+                    'source'       => 'openverse',
+                    'type'         => 'photo',
+                    'title'        => $r['title'] ?? 'Openverse image',
+                    'preview_url'  => $r['url'] ?? $r['thumbnail'] ?? '',
+                    'download_url' => $r['url'] ?? '',
+                    'attribution'  => $this->openverseAttribution($r),
+                ];
+            }
+        } catch (\Throwable) {
+            return null;
+        }
+        return null;
+    }
+
+    /** Build request headers for Openverse, adding a bearer token when one is configured. */
+    private function openverseHeaders(): array
+    {
+        $headers = [];
+        $keyInfo = $this->keyService->getKey('openverse');
+        if ($keyInfo && !empty($keyInfo['api_key'])) {
+            $headers[] = 'Authorization: Bearer ' . $keyInfo['api_key'];
+        }
+        return $headers;
+    }
+
+    /** Prefer Openverse's ready-made attribution string; otherwise synthesize one. */
+    private function openverseAttribution(array $r): string
+    {
+        if (!empty($r['attribution'])) {
+            return (string) $r['attribution'];
+        }
+        $creator = $r['creator'] ?? 'Unknown';
+        $license = strtoupper((string) ($r['license'] ?? 'CC'));
+        return "Image by {$creator} — {$license} via Openverse";
     }
 
     // ──────────────────────────────────────────────

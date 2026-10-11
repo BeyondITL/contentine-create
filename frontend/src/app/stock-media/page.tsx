@@ -13,7 +13,9 @@ import {
   Loader2,
   Clock,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useStockStore } from '@/stores/stock-store';
+import { useEditorStore } from '@/stores/editor-store';
 import type { StockMediaType, StockSource, StockItem } from '@/stores/stock-store';
 import StockMediaGrid from '@/components/stock/StockMediaGrid';
 import StockSkeleton from '@/components/stock/StockSkeleton';
@@ -29,6 +31,7 @@ const MEDIA_TYPES: { id: StockMediaType; label: string; icon: typeof Camera }[] 
 /** Source filter options. */
 const SOURCES: { id: StockSource; label: string }[] = [
   { id: 'all', label: 'All' },
+  { id: 'openverse', label: 'Openverse' },
   { id: 'pexels', label: 'Pexels' },
   { id: 'pixabay', label: 'Pixabay' },
   { id: 'freesound', label: 'Freesound' },
@@ -59,6 +62,7 @@ export default function StockMediaPage() {
   } = useStockStore();
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   // Set page title
   useEffect(() => {
@@ -80,16 +84,45 @@ export default function StockMediaPage() {
     [handleSearch],
   );
 
-  const handleAddToVideo = useCallback((item: StockItem) => {
-    // Navigate to video creation with stock media pre-selected
-    const params = new URLSearchParams({
-      stock_url: item.download_url,
-      stock_type: item.type,
-      stock_source: item.source,
-      stock_title: item.title,
-    });
-    window.location.href = `/video/create?${params.toString()}`;
-  }, []);
+  const handleAddToVideo = useCallback(
+    (item: StockItem) => {
+      // Push the selection straight into the (in-memory) editor store, then do a
+      // CLIENT-SIDE navigation. A full-page `window.location` reload wiped that
+      // store, which is why the old flow flickered to an empty Script step.
+      const editor = useEditorStore.getState();
+      const mediaUrl = item.preview_url || item.download_url;
+
+      if (item.type === 'audio') {
+        // Audio becomes the project's background music track (set on the Style step).
+        editor.setMusicUrl(item.download_url || item.preview_url);
+        editor.setStep(4);
+        router.push('/video/create');
+        return;
+      }
+
+      // Photo / video poster attaches to a scene as its visual.
+      const scenes = editor.scenes ?? [];
+      const firstEmpty =
+        scenes.length === 1 && !scenes[0].narration.trim() && !scenes[0].image_url;
+      if (firstEmpty) {
+        editor.updateScene(scenes[0].id, {
+          image_url: mediaUrl,
+          visual_prompt: item.title || scenes[0].visual_prompt,
+        });
+      } else {
+        editor.addScene();
+        const updated = useEditorStore.getState().scenes;
+        const added = updated[updated.length - 1];
+        editor.updateScene(added.id, {
+          image_url: mediaUrl,
+          visual_prompt: item.title || '',
+        });
+      }
+      editor.setStep(2);
+      router.push('/video/create');
+    },
+    [router],
+  );
 
   const handleDownload = useCallback(
     async (item: StockItem) => {

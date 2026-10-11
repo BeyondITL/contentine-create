@@ -19,6 +19,28 @@ import {
 } from 'mediabunny';
 import type { EncodedChunk } from './webcodecs-encoder';
 
+/**
+ * SA-30: Mediabunny negotiates HE-AAC (`mp4a.40.5`) for low-sample-rate mono audio,
+ * a profile this browser's WebCodecs AudioEncoder cannot encode ("This specific
+ * encoder configuration … is not supported"). Kokoro TTS emits 24 kHz mono, so the
+ * video/avatar lanes hit this at mux time. Resampling anything under 32 kHz to
+ * 48 kHz makes Mediabunny pick AAC-LC (`mp4a.40.2`), the broadly-supported profile.
+ * No-op when already ≥ 32 kHz, so lanes that pre-resample (avatar) are unaffected.
+ */
+async function resampleAudio(data: Float32Array, fromRate: number, toRate: number): Promise<Float32Array> {
+  if (fromRate === toRate || data.length === 0) return data;
+  const frames = Math.max(1, Math.round((data.length * toRate) / fromRate));
+  const ctx = new OfflineAudioContext(1, frames, toRate);
+  const src = ctx.createBuffer(1, data.length, fromRate);
+  src.getChannelData(0).set(data);
+  const node = ctx.createBufferSource();
+  node.buffer = src;
+  node.connect(ctx.destination);
+  node.start();
+  const rendered = await ctx.startRendering();
+  return rendered.getChannelData(0).slice();
+}
+
 export interface MuxConfig {
   /** Individual encoded H.264 chunks from the WebCodecs encoder. */
   videoChunks: EncodedChunk[];
@@ -105,11 +127,15 @@ export async function muxToMP4(config: MuxConfig): Promise<Blob> {
   }
   videoSource.close();
 
-  // Feed audio as AudioBuffer
+  // Feed audio as AudioBuffer.
+  // SA-30: lift sub-32 kHz mono (Kokoro TTS is 24 kHz) to 48 kHz so Mediabunny
+  // negotiates AAC-LC (mp4a.40.2), not HE-AAC (mp4a.40.5) which WebCodecs rejects.
   if (audioSource && config.audioData.length > 0) {
-    const audioCtx = new OfflineAudioContext(1, config.audioData.length, config.audioSampleRate);
-    const audioBuffer = audioCtx.createBuffer(1, config.audioData.length, config.audioSampleRate);
-    audioBuffer.getChannelData(0).set(config.audioData);
+    const muxSampleRate = config.audioSampleRate < 32000 ? 48000 : config.audioSampleRate;
+    const muxAudio = await resampleAudio(config.audioData, config.audioSampleRate, muxSampleRate);
+    const audioCtx = new OfflineAudioContext(1, muxAudio.length, muxSampleRate);
+    const audioBuffer = audioCtx.createBuffer(1, muxAudio.length, muxSampleRate);
+    audioBuffer.getChannelData(0).set(muxAudio);
     await audioSource.add(audioBuffer);
     audioSource.close();
   }

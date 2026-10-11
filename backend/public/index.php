@@ -167,6 +167,7 @@ $router->get('/api/inspiration',       'InspirationController@index');
 
 // Stock Media (v2.2)
 $router->get('/api/stock/search',              'StockController@search');
+$router->get('/api/stock/proxy',               'StockController@proxy');
 $router->get('/api/stock/{source}/{id}/download', 'StockController@download');
 
 // API Keys (v2.2)

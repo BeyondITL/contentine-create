@@ -24,6 +24,7 @@ import { useEditorStore } from '@/stores/editor-store';
 import { useStockStore } from '@/stores/stock-store';
 import { useAvatarStore } from '@/stores/avatar-store';
 import type { StockItem } from '@/stores/stock-store';
+import { IMAGE_GEN_ENABLED } from '@/lib/model-catalog';
 
 type VisualMode = 'ai_visuals' | 'stock' | 'upload';
 
@@ -56,7 +57,9 @@ export default function VisualsStep() {
     randomizeSeed,
   } = useEditorStore();
 
-  const [mode, setMode] = useState<VisualMode>('ai_visuals');
+  // Default to Stock when on-device AI images are gated off, so URL→video lands
+  // on the source that actually produces visuals (AI needs a DALL-E key when off).
+  const [mode, setMode] = useState<VisualMode>(IMAGE_GEN_ENABLED ? 'ai_visuals' : 'stock');
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
 
@@ -102,8 +105,8 @@ export default function VisualsStep() {
         <h3 className="text-sm font-semibold text-text dark:text-white mb-3">Visual Source</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {([
-            { key: 'ai_visuals' as const, label: 'AI Generated', desc: 'DALL-E 3 + SD Turbo fallback', icon: <Sparkles size={18} className="text-[#F3A6FF]" /> },
-            { key: 'stock' as const, label: 'Stock Footage', desc: 'Pexels & Pixabay', icon: <ImageIcon size={18} className="text-primary" /> },
+            { key: 'ai_visuals' as const, label: 'AI Generated', desc: IMAGE_GEN_ENABLED ? 'SD Turbo (on-device) or DALL-E' : 'Needs a DALL-E API key', icon: <Sparkles size={18} className="text-[#F3A6FF]" /> },
+            { key: 'stock' as const, label: 'Stock Footage', desc: 'Free & open-licensed', icon: <ImageIcon size={18} className="text-primary" /> },
             { key: 'upload' as const, label: 'Upload Your Own', desc: 'Custom images/video', icon: <Upload size={18} className="text-secondary" /> },
           ]).map((opt) => (
             <button
@@ -415,7 +418,7 @@ function StockMediaPanel() {
           <h4 className="text-[12px] font-semibold text-text dark:text-white">
             Stock Photos
           </h4>
-          <span className="text-[10px] text-text-muted ml-auto">Pexels + Pixabay</span>
+          <span className="text-[10px] text-text-muted ml-auto">Openverse &amp; more</span>
         </div>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -539,6 +542,18 @@ function StockMediaPanel() {
             )}
           </>
         )}
+      </div>
+
+      {/* Attribution — surface the source each provider's terms expect (Pexels requires a visible link). */}
+      <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 px-3 py-2 border-t border-border-light dark:border-[#333] text-[10px] text-text-muted">
+        <span>Photos via</span>
+        <a href="https://openverse.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Openverse</a>
+        <span>,</span>
+        <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Pexels</a>
+        <span>&amp;</span>
+        <a href="https://pixabay.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-primary hover:underline">
+          Pixabay <ExternalLink size={9} />
+        </a>
       </div>
     </div>
   );

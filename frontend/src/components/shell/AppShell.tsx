@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -388,7 +389,7 @@ function NavItem({ Icon, label, href, active, accent }: {
   Icon: LucideIcon; label: string; href: string; active?: boolean; accent?: boolean;
 }) {
   return (
-    <a
+    <Link
       href={href}
       title={label}
       className={`group relative flex items-center gap-2.5 px-3 py-[7px] rounded-[8px] transition-all duration-150 cursor-pointer min-h-[44px] md:min-h-0 md:justify-center md:px-0 md:py-2 lg:justify-start lg:px-3 lg:py-[7px] lg:min-h-0 ${
@@ -420,6 +421,6 @@ function NavItem({ Icon, label, href, active, accent }: {
       <span className="hidden md:block lg:hidden absolute left-full ml-2 px-2.5 py-1.5 rounded-lg bg-[#1A1A1A] text-white text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-lg">
         {label}
       </span>
-    </a>
+    </Link>
   );
 }

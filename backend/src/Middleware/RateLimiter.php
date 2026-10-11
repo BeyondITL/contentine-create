@@ -73,6 +73,13 @@ class RateLimiter
             self::check("auth:{$ip}", $authLimit, 3600); // per hour
         }
 
+        // Stock media proxy: an image/audio grid fires many parallel requests, so it
+        // gets its own generous bucket instead of draining the general per-minute limit.
+        if (str_contains($uri, '/api/stock/proxy')) {
+            self::check("stockproxy:{$ip}", 600, 60);
+            return;
+        }
+
         // General rate limit
         self::check("general:{$ip}", $generalLimit, 60); // per minute
     }

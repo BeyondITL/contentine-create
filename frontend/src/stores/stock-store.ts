@@ -5,11 +5,11 @@ import { localDB } from '@/lib/local-db';
 // --- Types ---
 
 export type StockMediaType = 'photo' | 'video' | 'audio';
-export type StockSource = 'pexels' | 'pixabay' | 'freesound' | 'all';
+export type StockSource = 'openverse' | 'pexels' | 'pixabay' | 'freesound' | 'all';
 
 export interface StockItem {
   id: string;
-  source: 'pexels' | 'pixabay' | 'freesound';
+  source: 'openverse' | 'pexels' | 'pixabay' | 'freesound';
   type: StockMediaType;
   title: string;
   preview_url: string;
@@ -48,6 +48,7 @@ interface StockSearchResponse {
 
 /** Per-source rate limit configuration. */
 const RATE_LIMITS: Record<string, { maxPerHour: number; label: string }> = {
+  openverse: { maxPerHour: 100, label: 'Openverse' },
   pexels: { maxPerHour: 200, label: 'Pexels' },
   pixabay: { maxPerHour: 5000, label: 'Pixabay' },
   freesound: { maxPerHour: 2000, label: 'Freesound' },
@@ -55,6 +56,7 @@ const RATE_LIMITS: Record<string, { maxPerHour: number; label: string }> = {
 
 /** Tracks request timestamps per source for rate limit estimation. */
 const requestTimestamps: Record<string, number[]> = {
+  openverse: [],
   pexels: [],
   pixabay: [],
   freesound: [],
@@ -88,13 +90,15 @@ function isApproachingLimit(source: string): boolean {
 function buildApiKeyError(source: string): string {
   switch (source) {
     case 'pexels':
-      return 'Pexels API key not configured. Add PEXELS_API_KEY in backend .env';
+      return 'Pexels API key not configured. Add it in the admin Providers settings.';
     case 'pixabay':
-      return 'Pixabay API key not configured. Add PIXABAY_API_KEY in backend .env';
+      return 'Pixabay API key not configured. Add it in the admin Providers settings.';
     case 'freesound':
-      return 'Freesound API key not configured. Add FREESOUND_API_KEY in backend .env';
+      return 'Freesound API key not configured. Add it in the admin Providers settings.';
+    case 'openverse':
+      return 'Openverse is temporarily unavailable — please try again in a moment.';
     default:
-      return `${source} API key not configured. Add the appropriate API key in backend .env`;
+      return `${source} API key not configured. Add it in the admin Providers settings.`;
   }
 }
 
@@ -242,14 +246,14 @@ export const useStockStore = create<StockState>((set, get) => ({
     set({ isSearching: true, searchError: null, page: 1, results: [], totalResults: 0, sourceWarnings: [], isDemoFallback: false });
 
     // When source is "all", search compatible providers in parallel and merge
-    const sourcesToSearch: Array<'pexels' | 'pixabay' | 'freesound'> =
+    const sourcesToSearch: Array<'openverse' | 'pexels' | 'pixabay' | 'freesound'> =
       source === 'all'
         ? mediaType === 'audio'
           ? ['freesound']
           : mediaType === 'photo'
-            ? ['pexels', 'pixabay']
-            : ['pexels', 'pixabay'] // video
-        : [source as 'pexels' | 'pixabay' | 'freesound'];
+            ? ['openverse', 'pixabay', 'pexels']
+            : ['pexels', 'pixabay'] // video (Openverse is photo-only)
+        : [source as 'openverse' | 'pexels' | 'pixabay' | 'freesound'];
 
     try {
       const fetches = sourcesToSearch.map((src) => {
@@ -386,14 +390,14 @@ export const useStockStore = create<StockState>((set, get) => ({
     set({ isLoadingMore: true });
 
     // When source is "all", fan out across compatible providers
-    const sourcesToSearch: Array<'pexels' | 'pixabay' | 'freesound'> =
+    const sourcesToSearch: Array<'openverse' | 'pexels' | 'pixabay' | 'freesound'> =
       source === 'all'
         ? mediaType === 'audio'
           ? ['freesound']
           : mediaType === 'photo'
-            ? ['pexels', 'pixabay']
+            ? ['openverse', 'pixabay', 'pexels']
             : ['pexels', 'pixabay']
-        : [source as 'pexels' | 'pixabay' | 'freesound'];
+        : [source as 'openverse' | 'pexels' | 'pixabay' | 'freesound'];
 
     try {
       const fetches = sourcesToSearch.map((src) => {
