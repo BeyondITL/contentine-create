@@ -69,7 +69,7 @@ export default function EnterprisePlanCard({ onContactSales }: EnterprisePlanCar
           </span>
         </div>
         <p className="mt-1.5 text-[13px] md:text-[12px] text-text-muted leading-relaxed">
-          Tailored to your organization's scale and workflow.
+          Tailored to your organization&apos;s scale and workflow.
         </p>
       </div>
 

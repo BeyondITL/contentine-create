@@ -14,7 +14,7 @@ import {
   adoptFolder, chooseModelFolder, clearAllAppData, deleteCacheEntries,
   findOrphans, folderStorageSupported, getFolderHandle, getLastVerified,
   getStorageMode, isManagedModel, migrateStorage, queryFolderPermission,
-  requestFolderPermission, useBrowserStorage,
+  requestFolderPermission, switchToBrowserStorage,
   type AdoptProgress, type DownloadProgress, type FolderPermission,
   type OrphanReport, type StorageMode,
 } from '@/lib/model-storage';
@@ -114,8 +114,7 @@ export default function StoragePanel() {
   const handleUseBrowser = async () => {
     setBusy('browser');
     try {
-      // eslint-disable-next-line react-hooks/rules-of-hooks -- store action, not a React hook
-      await useBrowserStorage();
+      await switchToBrowserStorage();
       await checkAllStatuses();
       await refresh();
     } finally {

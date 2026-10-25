@@ -210,7 +210,7 @@ export async function chooseModelFolder(): Promise<FileSystemDirectoryHandle> {
 }
 
 /** Switch back to browser storage (keeps the folder handle for later). */
-export async function useBrowserStorage(): Promise<void> {
+export async function switchToBrowserStorage(): Promise<void> {
   await setStorageMode('browser');
 }
 

@@ -150,7 +150,7 @@ export async function createAnimeFilter(): Promise<AnimeFilter> {
   const BufferUsage: any = (globalThis as any).GPUBufferUsage;
   const TextureUsage: any = (globalThis as any).GPUTextureUsage;
 
-  const module = device.createShaderModule({ code: SHADER });
+  const shaderModule = device.createShaderModule({ code: SHADER });
   const sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
   const uniformBuffer = device.createBuffer({
     size: 16, // vec2 texel + f32 sharpness + f32 pad
@@ -159,8 +159,8 @@ export async function createAnimeFilter(): Promise<AnimeFilter> {
 
   const pipeline = device.createRenderPipeline({
     layout: 'auto',
-    vertex: { module, entryPoint: 'vs' },
-    fragment: { module, entryPoint: 'fs', targets: [{ format }] },
+    vertex: { module: shaderModule, entryPoint: 'vs' },
+    fragment: { module: shaderModule, entryPoint: 'fs', targets: [{ format }] },
     primitive: { topology: 'triangle-list' },
   });
 
