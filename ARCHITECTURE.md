@@ -149,9 +149,9 @@ Each store is independent and manages one domain:
 | Face Animator | face-animator.ts | face-api.js landmark detection |
 | Avatar Pipeline | avatar-render-pipeline.ts | Avatar video composition |
 | TalkingHead Engine | talkinghead-engine.ts | 3D avatar rendering |
-| Wav2Lip Engine | wav2lip-engine.ts | Photo-to-talking-head |
-| F5-TTS Engine | f5tts-engine.ts | Voice cloning |
-| SD Turbo Engine | sd-turbo-engine.ts | Image generation |
+| Wav2Lip Engine | wav2lip-engine.ts | Photo-to-talking-head — **quarantined** (weights license; see LICENSES.md) |
+| F5-TTS Engine | f5tts-engine.ts | Voice cloning — **quarantined** (weights license; see LICENSES.md) |
+| SD Turbo Engine | sd-turbo-engine.ts | Image generation — **gated off** by `NEXT_PUBLIC_IMAGE_GEN_ENABLED` (Stability license) |
 | WebLLM Engine | webllm-engine.ts | In-browser LLM |
 | Whisper Engine | whisper-engine.ts | Speech-to-text |
 | Translation Pipeline | translation-pipeline.ts | Multi-language translation |

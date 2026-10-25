@@ -21,10 +21,10 @@ Until one of these lands, URL→video is not a launch flow. Help wanted here.
 
 ## Near-term, well-scoped (good contributor entry points)
 
-- **Harden the remix→wizard script parser.** It can mis-split model output (preamble becomes a junk scene; `**SCENE n:**` markdown survives; `(Visual prompt: …)` / `Camera angle:` lines leak into narration and would be spoken by TTS). Needs preamble/epilogue trimming, markdown-marker stripping, scene-heading dedup, and field-aware parsing. Real captured model output exists in the test fixtures to unit-test against.
-- **Accessibility pass.** The toast/notification layer needs `role` / `aria-live` so failure messages are announced to assistive tech. Audit the rest of the UI against WCAG basics.
+- **Harden the remix→wizard script parser.** It can mis-split model output (preamble becomes a junk scene; `**SCENE n:**` markdown survives; `(Visual prompt: …)` / `Camera angle:` lines leak into narration and would be spoken by TTS). Needs preamble/epilogue trimming, markdown-marker stripping, scene-heading dedup, and field-aware parsing. Test fixtures still need to be captured from real model output (tracked as a `help wanted` issue).
+- **Accessibility pass.** Toast announcements already ship (`role="status"`/`"alert"` + `aria-live`, SA-35); the open work is icon-only buttons with no accessible name, form fields not associated with their labels, `Modal` focus handling (trap + restore on close), and the `ContentTypeStep` `role`/`aria-pressed` conflict. Several are labelled `good first issue`.
 - **Honest UI labels for gated features.** Where a tier advertises a model that's currently flag-gated off, show the real gated-state message instead of the aspirational label.
-- **Test coverage.** Expand the `scripts/verify-*.mjs` harnesses and add unit tests around the stores and engines.
+- **Test coverage.** The `scripts/verify-*.mjs` harnesses need to be made portable first (they hard-code an absolute local path and read `/tmp/api-key.txt`). The Vitest `@/` alias is now wired, so store and engine modules can be imported directly in new unit tests.
 
 ## Later / bigger bets
 
