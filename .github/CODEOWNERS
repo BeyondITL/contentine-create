@@ -1,0 +1,4 @@
+# CODEOWNERS — who is auto-requested for review on a PR.
+# The handle below MUST have write access or GitHub silently ignores the rule.
+# Replace it with your GitHub user or a @BeyondITL/<team> as appropriate.
+* @BeyondITL-Mossaddique
