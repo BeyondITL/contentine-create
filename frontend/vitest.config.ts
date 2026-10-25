@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Vitest owns the unit tests under src/. It must NOT collect `e2e/*.spec.ts` —
@@ -11,6 +12,10 @@ import { defineConfig } from 'vitest/config';
  * is green when the code is correct.
  */
 export default defineConfig({
+  // `@/` maps to src/ so unit tests can import modules that use runtime `@/` imports.
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
   test: {
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['e2e/**', 'node_modules/**', 'out/**', '.next/**'],
