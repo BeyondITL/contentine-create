@@ -80,25 +80,18 @@ fi
 # ──────────────────────────────────────────────
 # 5. TalkingHead default GLB avatar
 # ──────────────────────────────────────────────
-echo "[5/5] Setting up default TalkingHead avatar..."
+echo "[5/5] 3D avatar (GLB) -- OPTIONAL, not required to run the app..."
 mkdir -p frontend/public/models/avatars
-if [ ! -f frontend/public/models/avatars/default.glb ]; then
-  # Try downloading from a public GLB model source
-  # Note: Ready Player Me shut down Jan 2026 — use alternative open-source avatar
-  # The TalkingHead library repo includes example models
-  echo "  NOTE: No default.glb avatar found."
-  echo "  You need to provide a GLB avatar model with ARKit blend shapes at:"
-  echo "    frontend/public/models/avatars/default.glb"
-  echo ""
-  echo "  Options to obtain a compatible GLB avatar:"
-  echo "    1. Export from Mixamo (mixamo.com) with ARKit targets"
-  echo "    2. Use TalkingHead library example models"
-  echo "    3. Create in Blender with ARKit blend shape names (52 shapes)"
-  echo "    4. Download from Sketchfab (filter: GLB, rigged, facial blend shapes)"
-  echo ""
-  echo "  The model MUST have: ARKit-compatible blend shapes, Mixamo-compatible rig, GLB format"
+if [ -f frontend/public/models/avatars/default.glb ]; then
+  echo "  default.glb present -- the 3D \"Quick Avatar\" tier can be enabled."
 else
-  echo "  default.glb avatar already exists."
+  echo "  No default.glb -- this is fine. The app does NOT need it:"
+  echo "    - the 3D \"Quick Avatar\" tier shows \"coming soon\" (gated off in the UI),"
+  echo "    - Photo Avatars (free, working) and Cartoon are the default paths."
+  echo "  To ENABLE the 3D tier later, drop a LICENSE-CLEARED GLB with ARKit (52)"
+  echo "  blend shapes + a Mixamo-compatible rig at:"
+  echo "    frontend/public/models/avatars/default.glb"
+  echo "  and record its license in LICENSES.md + NOTICE first (repo Law L4)."
 fi
 
 # ──────────────────────────────────────────────
@@ -149,6 +142,6 @@ echo "  Kokoro voices:   frontend/public/models/kokoro-voices/ (~15MB, 5 default
 echo "  PDF.js worker:   frontend/public/workers/           (~800KB)"
 echo "  Render worker:   frontend/public/render-worker.js   (~700KB, cartoon)"
 echo "  ONNX Runtime:    frontend/public/wasm/ort/          (if installed)"
-echo "  Avatar GLB:      frontend/public/models/avatars/    (manual setup)"
+echo "  Avatar GLB:      frontend/public/models/avatars/    (OPTIONAL -- 3D tier; app works without it)"
 echo ""
 echo "NOTE: FFmpeg WASM removed in v2.2 — Mediabunny (pure TS) needs no WASM files."
