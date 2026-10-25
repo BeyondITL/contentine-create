@@ -1,0 +1,27 @@
+name: Welcome
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: >
+            Thanks for opening your first issue! A maintainer will triage it soon.
+            If you'd like to work on it, comment "I'd like to work on this" and we'll
+            assign it to you. See CONTRIBUTING.md for setup and the quality bar.
+          pr-message: >
+            Thanks for your first pull request! A maintainer will review within 48 hours.
+            Please make sure the checks pass and you've followed CONTRIBUTING.md — including
+            the MP4-evidence rule for any render/generation flow. Welcome aboard. 🎬
