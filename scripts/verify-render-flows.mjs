@@ -22,8 +22,9 @@ import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = '/Users/mossaddiqueahsan/Downloads/contentine-create-canonical';
+const REPO_ROOT = process.env.CONTENTINE_REPO_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FRONTEND = path.join(REPO_ROOT, 'frontend');
 const PORT = 8330;
 const BACKEND = 'http://127.0.0.1:8080';
@@ -156,7 +157,7 @@ async function main() {
 
   try {
     if (FLOW === 'url') {
-      const apiKey = fs.readFileSync('/tmp/api-key.txt', 'utf8').trim();
+      const apiKey = (process.env.CONTENTINE_API_KEY || process.env.OPENAI_API_KEY || '');
       await routeToLocalBackend(page, apiKey);
     }
 

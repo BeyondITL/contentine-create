@@ -27,13 +27,14 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = '/Users/mossaddiqueahsan/Downloads/contentine-create-canonical';
+const REPO_ROOT = process.env.CONTENTINE_REPO_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FRONTEND = path.join(REPO_ROOT, 'frontend');
 const ARTIFACTS = path.join(REPO_ROOT, 'artifacts', 'script-generation');
 const PORT = 8324;
 const BACKEND = 'http://127.0.0.1:8080';
-const API_KEY = fs.readFileSync('/tmp/api-key.txt', 'utf8').trim();
+const API_KEY = (process.env.CONTENTINE_API_KEY || process.env.OPENAI_API_KEY || '');
 const PROD_API = 'http://localhost:8080/api';
 
 const require = createRequire(path.join(FRONTEND, 'package.json'));

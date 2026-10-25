@@ -10,8 +10,9 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = '/Users/mossaddiqueahsan/Downloads/contentine-create-canonical';
+const REPO_ROOT = process.env.CONTENTINE_REPO_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../..');
 const FRONTEND = path.join(REPO_ROOT, 'frontend');
 const HARNESS = path.join(FRONTEND, 'src/engine/cartoon/harness');
 const PUBLIC_DIR = path.join(FRONTEND, 'public');

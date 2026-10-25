@@ -28,8 +28,9 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = '/Users/mossaddiqueahsan/Downloads/contentine-create-canonical';
+const REPO_ROOT = process.env.CONTENTINE_REPO_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FRONTEND = path.join(REPO_ROOT, 'frontend');
 const ARTIFACTS = path.join(REPO_ROOT, 'artifacts', 'voice-presets');
 const PORT = 8322;
