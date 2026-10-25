@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, FileText, Image, Mic, Palette, Play } from 'lucide-react';
+import { Check, FileText, Image as ImageIcon, Mic, Palette, Play } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -12,7 +12,7 @@ interface StepIndicatorProps {
 
 const steps: { label: string; icon: ReactNode; step: Step }[] = [
   { label: 'Script', icon: <FileText size={16} />, step: 1 },
-  { label: 'Visuals', icon: <Image size={16} />, step: 2 },
+  { label: 'Visuals', icon: <ImageIcon size={16} />, step: 2 },
   { label: 'Voice', icon: <Mic size={16} />, step: 3 },
   { label: 'Style', icon: <Palette size={16} />, step: 4 },
   { label: 'Generate', icon: <Play size={16} />, step: 5 },
