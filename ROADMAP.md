@@ -4,7 +4,7 @@ An honest view of where Contentine Create is and what's next. This is a working 
 
 ## Proven today (downloadable, ffprobe-valid MP4)
 
-- Avatar (talking head) → MP4
+- Avatar — **Photo tier** (upload a photo → face-animated talking head) → MP4. *(The 3D "Quick Avatar" / TalkingHead tier is gated off, pending a license-cleared GLB **and** viseme wiring — see the 3D-avatar issue.)*
 - Audio-to-video (upload audio → on-device transcription → captioned video) → MP4
 - Cartoon (script → styled animated scene → render) → MP4
 - On-device script generation with honest fallbacks when no browser LLM/WebGPU is available
