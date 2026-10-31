@@ -1,0 +1,126 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp3/project-store",
+  "tested_commit": "7b0b31dd33f7f2e050193db00f5b16c358d86eee",
+  "timestamp_utc": "2026-10-31",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chrome (Playwright channel=chrome) HeadlessChrome/153.0.0.0, persistent profile, fresh per run",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264, prefer-software",
+    "audio_encoder": "Opus (no AAC encoder in this Chromium)",
+    "storage": "IndexedDB (real, on-disk Chrome profile)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "67ab5c9086e694c1"
+  },
+  "input_kind": "shipped_example (frontend/src/engine/cartoon/harness/reference-plan.ts)",
+  "commands_or_steps": [
+    "cd frontend && npm ci --ignore-scripts",
+    "bash scripts/setup-assets.sh",
+    "node frontend/src/engine/cartoon/harness/run-persistence.mjs"
+  ],
+  "artifacts": {
+    "dir": "artifacts/persistence/ (gitignored)",
+    "report": "persistence-report.json",
+    "sizes_bytes": {
+      "session1-render.mp4": 5392403,
+      "session2-restored-full.mp4": 5190232,
+      "session2-restored-edited.mp4": 5211323,
+      "project-bundle.ccproj": 12353619
+    },
+    "mp4_sha256": {
+      "session1-render.mp4": "f222c9f993107887a7a7a5d2f82161d989c6915dc05b6abd714e3d3722425d9a",
+      "session2-restored-full.mp4": "bef6650f3a0ff682adf5c983a88f09c58d50e86e9b2a37e9009a7302c733189a",
+      "session2-restored-edited.mp4": "e20b9f88406eaad6be99ab86e0d1db36c7a3e79a444269ed6f602f86ee76da0a"
+    }
+  },
+  "test_id": "A05",
+  "outcome": "pass",
+  "verification_class": "real_execution",
+  "real_components": [
+    "Chrome process quit and relaunched on the same on-disk profile",
+    "IndexedDB",
+    "Kokoro TTS (session 1 only)",
+    "cartoon renderer worker",
+    "WebCodecs H.264",
+    "Mediabunny mux",
+    "OfflineAudioContext",
+    "ffprobe/ffmpeg (Node-side re-verification)"
+  ],
+  "substituted_components": [],
+  "expected": "After a full browser restart the project reopens with the same plan, the same pinned voice takes (no re-synthesis), a restorable render cache, and exports a valid MP4; an edit after reopen partially re-renders from the restored cache.",
+  "observed": {
+    "session1": {
+      "revision": 1,
+      "planHash": "3d8fee32b46d523b152d62af546ff92725f8b922b65bc2cbcd234af3d4b62827",
+      "ttsCalls": 6,
+      "bytesWritten": 12660197,
+      "storageEstimate": {
+        "usage": 226218597,
+        "quota": 10963636837
+      },
+      "frames": 1062
+    },
+    "listed_after_restart": [
+      {
+        "projectId": "c-m1-reference",
+        "revision": 1,
+        "hasRender": true
+      }
+    ],
+    "loaded": {
+      "revision": 1,
+      "planHash": "3d8fee32b46d523b152d62af546ff92725f8b922b65bc2cbcd234af3d4b62827",
+      "take_count": 6,
+      "warnings": []
+    },
+    "tts_calls_after_reopen": 0,
+    "take_hashes_recomputed_from_restored_pcm_equal": true,
+    "restored_render_cache_mp4_sha256_equals_session1": true,
+    "full_render_from_restored_state": {
+      "pre_encode_frame_hashes_identical": true,
+      "mixed_pcm_hash_identical": true,
+      "ffprobe_structure_identical": true,
+      "decoded_frames_differing_informational": 1054
+    },
+    "partial_rerender_after_reopen": {
+      "mode": "partial",
+      "rerenderedScenes": [
+        "scene-duo"
+      ],
+      "rerenderedFrameRanges": [
+        [
+          365,
+          805
+        ]
+      ],
+      "reusedScenes": [
+        "scene-intro",
+        "scene-outro"
+      ],
+      "decoded_frame_diffs_vs_session1": {
+        "scene-intro": 0,
+        "scene-duo": 440,
+        "scene-outro": 0
+      }
+    },
+    "decoded_audio_md5_all_three_mp4s": "MD5=a53b430aa43d121de6ce6185301d6ec5",
+    "edit_saved_as_revision": 2,
+    "wall_clock_sec": 208
+  },
+  "comparison_semantics": "Pinned inputs compared by SHA-256 recomputed from restored bytes. Re-encoded video compared on pre-encode frame hashes + ffprobe structure (encoder is not run-to-run reproducible here, ENC-01); reused scenes compared on decoded frames (ffmpeg framemd5), which must be bit-identical because their encoded chunks come from the restored cache.",
+  "claim_supported": "A complete cartoon project (plan, 6 pinned Kokoro takes, render cache) saved in Chrome survives quitting and relaunching the browser: it reopens with identical take bytes and zero TTS calls, re-exports a valid MP4 with identical pre-encode frames and identical narration, and a post-reopen scene-2 edit reuses the restored intro/outro chunks bit-exactly.",
+  "claim_not_supported": [
+    "save/reopen through the editor UI (store is called from the harness page; UI wiring is pending)",
+    "background-image / audio-asset persistence in a real browser (covered by contract tests only; the sample plan uses procedural backgrounds)",
+    "storage eviction by the browser under real quota pressure",
+    "Safari/Firefox or hardware encoders",
+    "multi-tab concurrent editing beyond CAS conflict"
+  ],
+  "blocker": null
+}

@@ -43,7 +43,7 @@ export type { VisemeId, VisemeStamp } from './visemes';
 export { getRig, registerRig, createRestPose, TRACER_STICK_RIG } from './rig';
 export type { RigDefinition, RigPose, GestureFn, GestureTimeline } from './rig';
 
-export { synthesizeTakes, parseVoiceProfileRef, takeTimingInfo } from './voice-takes';
+export { synthesizeTakes, parseVoiceProfileRef, takeTimingInfo, takeMatchesLine } from './voice-takes';
 export type { VoiceTake, VoiceProfile } from './voice-takes';
 
 export { mixPlanAudio, MIX_SAMPLE_RATE } from './audio-mixer';

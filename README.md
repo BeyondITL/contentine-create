@@ -65,6 +65,8 @@ A flow counts as "working" only if it produces a **downloaded, ffprobe-valid MP4
 | Avatar (talking head) → MP4 | ✅ **Proven** |
 | Audio-to-video (upload audio → on-device transcription → captioned video) → MP4 | ✅ **Proven** |
 | Cartoon (script → styled animated scene → render) → MP4 | ✅ **Proven** |
+| Cartoon projects: save, reopen after a browser restart, back up/restore (`.ccproj`) | ✅ **Proven** — [evidence A05/A06](docs/execution/EVIDENCE.md) |
+| Cartoon scene edit by an AI assistant over MCP (inspect → patch → render → save) | ✅ **Proven** with Claude Code on Chrome — [evidence A12](docs/execution/EVIDENCE.md), [bridge](bridge/README.md) |
 | Script generation (on-device SLM, with honest fallbacks) | ✅ **Proven** |
 | URL → extract → script → video **wizard** | ✅ Up to the visuals step |
 | URL → **video** (AI images) → MP4 | ⚠️ Gated on a model-license decision — see [ROADMAP](ROADMAP.md) |
@@ -73,7 +75,7 @@ A flow counts as "working" only if it produces a **downloaded, ffprobe-valid MP4
 
 | Requirement | Minimum | Notes |
 |---|---|---|
-| Node | 18+ | for the frontend app |
+| Node | 20+ | for the frontend app and the optional assistant bridge |
 | Browser | recent Chrome / Edge | WebGPU for the fast path; WASM fallback otherwise |
 | PHP + MySQL/MariaDB | PHP 8.0+ | **optional** — only for sign-in, credits, and sync |
 
@@ -95,8 +97,10 @@ The app runs **frontend-only** out of the box. To enable sign-in, credits, and s
 frontend/      Next.js 14 static-export app — the engines, UI, and Zustand stores
 backend/       Optional PHP 8 API (auth sync, credits, commerce). PSR-4, no framework
 database/      SQL schema + ordered migrations
+bridge/        Local MCP companion that lets an AI assistant drive a paired Cartoon Studio tab
+samples/       Versioned sample projects (cartoon scene plans)
 scripts/       Asset setup, model manifest/BOM checks, and verification harnesses
-docs/          Engineering, UI/UX, and implementation specs
+docs/          Engineering, UI/UX, and implementation specs (cartoon: architecture, commands, project format)
 .claude/       Claude Code project config: laws, hooks, subagents, and domain skills
 ```
 

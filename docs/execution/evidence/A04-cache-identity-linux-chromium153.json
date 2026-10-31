@@ -1,0 +1,100 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp4/commands",
+  "timestamp_utc": "2026-10-31",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chrome (Playwright channel=chrome) HeadlessChrome/153.0.0.0",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264, prefer-software",
+    "audio_encoder": "Opus",
+    "storage": "IndexedDB (on-disk Chrome profile)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "67ab5c9086e694c1"
+  },
+  "tested_commit": "ad581125c8344e03d370bb49fcd72f2686505287",
+  "input_kind": "shipped_example (reference plan; intro background replaced by a generated gradient PNG asset)",
+  "commands_or_steps": [
+    "cd frontend && npm ci --ignore-scripts && cd .. && bash scripts/setup-assets.sh",
+    "node frontend/src/engine/cartoon/harness/run-commands.mjs"
+  ],
+  "artifacts": {
+    "dir": "artifacts/commands/ (gitignored)",
+    "report": "commands-report.json",
+    "mp4_sha256": {
+      "cmd-1-full": "9ab67a20abfc218ab8d506e230b620d3e49d51675c11dbaf75f02aeffb4afc52",
+      "cmd-2-move": "c2c023f78561055ee502c647ca851caf3ce3412ce7b8f2ea6e4c9fd7e19b559e",
+      "cmd-3-asset": "3f27574376a40e14e7f1ff7e038ff8d785e6eafd99763fe9d8b6e33ffe035bd2",
+      "cmd-4-speed": "6274a4565986f47e2bd189e4595dd971d91ff51dbf5d03b1885d4cad78f63b19",
+      "cmd-5-after-restart": "50045e0083b0ccc9b2cc6b84c3d5ab9f5b44a99252b9b0b5e538366118a2eccd"
+    }
+  },
+  "test_id": "A04",
+  "outcome": "pass",
+  "verification_class": "real_execution",
+  "real_components": [
+    "CartoonCommandService (same instance type the editor uses)",
+    "real Kokoro voice port",
+    "real WebCodecs renderer port + render worker",
+    "IndexedDB project store",
+    "Mediabunny demux verification",
+    "ffprobe/ffmpeg re-verification in Node"
+  ],
+  "substituted_components": [
+    "the harness page calls the service directly (scripted caller)"
+  ],
+  "expected": "Same-text voice/speed change re-voices exactly that line; replacing an asset's bytes under the same ref invalidates the scenes that use it; global settings changes do not reuse incompatible output.",
+  "observed": {
+    "speed_change": {
+      "staleBefore": [
+        "outro-1:stale"
+      ],
+      "synthesized": [
+        {
+          "lineId": "outro-1",
+          "takeKey": "outro-1",
+          "durationSec": 4.9
+        }
+      ]
+    },
+    "render_after_speed_change": {
+      "mode": "full",
+      "rerenderedScenes": [
+        "scene-intro",
+        "scene-duo",
+        "scene-outro"
+      ],
+      "reusedScenes": [],
+      "fullRenderReason": "scene frame windows shifted (dialogue/duration edit changed timing)"
+    },
+    "asset_bytes_swap_plus_outro_edit": {
+      "mode": "partial",
+      "rerenderedScenes": [
+        "scene-intro",
+        "scene-outro"
+      ],
+      "reusedScenes": [
+        "scene-duo"
+      ],
+      "fullRenderReason": null
+    },
+    "decoded_frame_deltas_vs_previous_render": {
+      "scene-intro": 365,
+      "scene-duo": 0,
+      "scene-outro": 235
+    },
+    "global_settings": "covered by contract tests only (render-identity.test.ts): fps/resolution/bitrate/renderer id change every scene key; no supported operation changes them yet (fps/resolution are immutable to patches)"
+  },
+  "comparison_semantics": "Decoded frames per scene window (ffmpeg framemd5) between consecutive renders; render report from the run record.",
+  "claim_supported": "With the intro scene's plan JSON unchanged but its background bytes replaced under the same ref, the partial re-render re-rendered the intro (365/365 decoded frames differ) and the edited outro, and reused scene 2 bit-exactly (0 differing). A speed-only change (kokoro:af_sky@1.0 \u2192 @1.15) made exactly that take stale and voice_synthesize replaced only it.",
+  "claim_not_supported": [
+    "real-browser change of fps/resolution/bitrate (no supported operation; contract-tested)",
+    "re-voiced take with identical duration in a real browser (contract-tested; real TTS changes duration)"
+  ],
+  "blocker": null
+}

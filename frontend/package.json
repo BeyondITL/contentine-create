@@ -51,6 +51,7 @@
     "esbuild": "^0.25.12",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.0",
+    "fake-indexeddb": "^6.2.7",
     "jsdom": "^24.0.0",
     "null-loader": "^4.0.1",
     "postcss": "^8.4.0",

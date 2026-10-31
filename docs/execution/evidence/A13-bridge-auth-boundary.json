@@ -1,0 +1,55 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp4/commands",
+  "timestamp_utc": "2026-10-31",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chrome (Playwright channel=chrome) HeadlessChrome/153.0.0.0",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264, prefer-software",
+    "audio_encoder": "Opus",
+    "storage": "IndexedDB (on-disk Chrome profile)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "67ab5c9086e694c1"
+  },
+  "tested_commit": "f6f5da4",
+  "test_id": "A13",
+  "outcome": "pass",
+  "verification_class": "contract_test",
+  "input_kind": "synthetic",
+  "commands_or_steps": [
+    "cd bridge && npm test"
+  ],
+  "real_components": [
+    "bridge-core WebSocket server",
+    "MCP server via in-memory transport",
+    "real Chrome pairing/resume in A12"
+  ],
+  "substituted_components": [
+    "ws client stands in for the browser for negative cases"
+  ],
+  "expected": "Foreign origins and non-loopback Host headers rejected; pairing code required, single-use, rate-limited; tokens hashed, origin-bound, revocable; unpaired tools fail closed; artifact path confined.",
+  "observed": {
+    "tests": [
+      "rejects foreign origins and non-loopback Host headers",
+      "pairing code required, single-use, rotates after 5 failures",
+      "tools fail closed while unpaired; disconnect fails in-flight calls",
+      "resume tokens survive restart, origin-bound, revocable, never stored in clear",
+      "artifacts verified and written only as <runId>.mp4 in the export dir",
+      "MCP surface is exactly the typed tools with side-effect annotations"
+    ],
+    "real_browser": "A12 paired via the UI and resumed after the bridge restarted (audit: paired, resumed)"
+  },
+  "comparison_semantics": "node:test assertions.",
+  "claim_supported": "The bridge's origin, host, pairing, token and path boundaries behave as documented.",
+  "claim_not_supported": [
+    "a penetration test",
+    "browser-enforced Private Network Access behaviour across browsers"
+  ],
+  "blocker": null
+}

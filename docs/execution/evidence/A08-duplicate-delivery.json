@@ -1,0 +1,49 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp4/commands",
+  "timestamp_utc": "2026-10-31",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chrome (Playwright channel=chrome) HeadlessChrome/153.0.0.0",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264, prefer-software",
+    "audio_encoder": "Opus",
+    "storage": "IndexedDB (on-disk Chrome profile)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "67ab5c9086e694c1"
+  },
+  "tested_commit": "f6f5da4",
+  "test_id": "A08",
+  "outcome": "pass",
+  "verification_class": "contract_test",
+  "input_kind": "synthetic fixture (reference plan, generated PCM)",
+  "commands_or_steps": [
+    "cd frontend && npx vitest run src/lib/cartoon/commands/service.test.ts"
+  ],
+  "real_components": [
+    "CartoonCommandService",
+    "project-store on fake-indexeddb"
+  ],
+  "substituted_components": [
+    "fake renderer and voice ports",
+    "fake-indexeddb instead of a browser IndexedDB"
+  ],
+  "expected": "Same key + same request \u2192 one outcome/run; same key + different payload \u2192 rejected; concurrent duplicates \u2192 one run / one revision.",
+  "observed": {
+    "sequential_replay": "same revision, replayed=true (also observed in real Chrome: commands-report apply.replayed)",
+    "different_payload": "IDEMPOTENCY_KEY_REUSED",
+    "concurrent_render_start": "one runId, one render (failed before insertRunOnce; fixed in ad58112)",
+    "concurrent_apply": "one revision"
+  },
+  "comparison_semantics": "Assertions on returned outcomes, run count and stored revision.",
+  "claim_supported": "Idempotency records commit atomically with the change; concurrent duplicate deliveries of render_start create exactly one run.",
+  "claim_not_supported": [
+    "response loss over the real bridge transport (the bridge has no automatic retry; a client retry with the same key replays)"
+  ],
+  "blocker": null
+}

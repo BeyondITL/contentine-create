@@ -11,37 +11,36 @@ echo "=== Contentine Create: Asset Localization ==="
 #    weights source: https://github.com/justadudewhohacks/face-api.js/tree/master/weights
 #    NOTE: face_recognition_model removed — unused in codebase, saves ~6.2MB
 # ──────────────────────────────────────────────
-echo "[1/5] Downloading face-api.js models..."
+echo "[1/8] Downloading face-api.js models..."
 mkdir -p frontend/public/models/face-api
 FACE_API_BASE="https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights"
 
-curl -L "${FACE_API_BASE}/tiny_face_detector_model-weights_manifest.json" -o frontend/public/models/face-api/tiny_face_detector_model-weights_manifest.json
-curl -L "${FACE_API_BASE}/tiny_face_detector_model-shard1"                -o frontend/public/models/face-api/tiny_face_detector_model-shard1
-curl -L "${FACE_API_BASE}/face_landmark_68_model-weights_manifest.json"   -o frontend/public/models/face-api/face_landmark_68_model-weights_manifest.json
-curl -L "${FACE_API_BASE}/face_landmark_68_model-shard1"                  -o frontend/public/models/face-api/face_landmark_68_model-shard1
-curl -L "${FACE_API_BASE}/face_expression_model-weights_manifest.json"    -o frontend/public/models/face-api/face_expression_model-weights_manifest.json
-curl -L "${FACE_API_BASE}/face_expression_model-shard1"                   -o frontend/public/models/face-api/face_expression_model-shard1
-curl -L "${FACE_API_BASE}/face_expression_model-shard2"                   -o frontend/public/models/face-api/face_expression_model-shard2
+curl -fL "${FACE_API_BASE}/tiny_face_detector_model-weights_manifest.json" -o frontend/public/models/face-api/tiny_face_detector_model-weights_manifest.json
+curl -fL "${FACE_API_BASE}/tiny_face_detector_model-shard1"                -o frontend/public/models/face-api/tiny_face_detector_model-shard1
+curl -fL "${FACE_API_BASE}/face_landmark_68_model-weights_manifest.json"   -o frontend/public/models/face-api/face_landmark_68_model-weights_manifest.json
+curl -fL "${FACE_API_BASE}/face_landmark_68_model-shard1"                  -o frontend/public/models/face-api/face_landmark_68_model-shard1
+curl -fL "${FACE_API_BASE}/face_expression_model-weights_manifest.json"    -o frontend/public/models/face-api/face_expression_model-weights_manifest.json
+curl -fL "${FACE_API_BASE}/face_expression_model-shard1"                   -o frontend/public/models/face-api/face_expression_model-shard1
 
 # ──────────────────────────────────────────────
 # 2. Kokoro TTS voice files (5 defaults)
 # ──────────────────────────────────────────────
-echo "[2/5] Pre-downloading Kokoro TTS voice files (5 defaults)..."
+echo "[2/8] Pre-downloading Kokoro TTS voice files (5 defaults)..."
 mkdir -p frontend/public/models/kokoro-voices
 KOKORO_BASE="https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/voices"
 
-curl -L "${KOKORO_BASE}/af_sky.bin"     -o frontend/public/models/kokoro-voices/af_sky.bin
-curl -L "${KOKORO_BASE}/af_bella.bin"   -o frontend/public/models/kokoro-voices/af_bella.bin
-curl -L "${KOKORO_BASE}/am_adam.bin"    -o frontend/public/models/kokoro-voices/am_adam.bin
-curl -L "${KOKORO_BASE}/am_michael.bin" -o frontend/public/models/kokoro-voices/am_michael.bin
-curl -L "${KOKORO_BASE}/bf_emma.bin"    -o frontend/public/models/kokoro-voices/bf_emma.bin
+curl -fL "${KOKORO_BASE}/af_sky.bin"     -o frontend/public/models/kokoro-voices/af_sky.bin
+curl -fL "${KOKORO_BASE}/af_bella.bin"   -o frontend/public/models/kokoro-voices/af_bella.bin
+curl -fL "${KOKORO_BASE}/am_adam.bin"    -o frontend/public/models/kokoro-voices/am_adam.bin
+curl -fL "${KOKORO_BASE}/am_michael.bin" -o frontend/public/models/kokoro-voices/am_michael.bin
+curl -fL "${KOKORO_BASE}/bf_emma.bin"    -o frontend/public/models/kokoro-voices/bf_emma.bin
 
 echo "  NOTE: Main ONNX model (~87MB) downloads on first TTS use with progress bar."
 
 # ──────────────────────────────────────────────
 # 3. PDF.js worker
 # ──────────────────────────────────────────────
-echo "[3/5] Copying PDF.js worker..."
+echo "[3/8] Copying PDF.js worker..."
 mkdir -p frontend/public/workers
 # Check frontend/node_modules first (monorepo), then root node_modules
 if [ -f frontend/node_modules/pdfjs-dist/build/pdf.worker.min.mjs ]; then
@@ -59,7 +58,7 @@ fi
 # ──────────────────────────────────────────────
 # 4. ONNX Runtime Web WASM
 # ──────────────────────────────────────────────
-echo "[4/5] Copying ONNX Runtime WASM..."
+echo "[4/8] Copying ONNX Runtime WASM..."
 mkdir -p frontend/public/wasm/ort
 # Check frontend/node_modules first, then root node_modules
 # NOTE: the .mjs ES-module glue MUST ship next to the .wasm — ORT's WebGPU
@@ -80,7 +79,7 @@ fi
 # ──────────────────────────────────────────────
 # 5. TalkingHead default GLB avatar
 # ──────────────────────────────────────────────
-echo "[5/5] 3D avatar (GLB) -- OPTIONAL, not required to run the app..."
+echo "[5/8] 3D avatar (GLB) -- OPTIONAL, not required to run the app..."
 mkdir -p frontend/public/models/avatars
 if [ -f frontend/public/models/avatars/default.glb ]; then
   echo "  default.glb present -- the 3D \"Quick Avatar\" tier can be enabled."
@@ -99,7 +98,7 @@ fi
 #    transformers.js bundles its OWN ort build — version must match, so these
 #    ship separately from onnxruntime-web's /wasm/ort/ files.
 # ──────────────────────────────────────────────
-echo "[6/7] Copying transformers.js ONNX Runtime WASM..."
+echo "[6/8] Copying transformers.js ONNX Runtime WASM..."
 mkdir -p frontend/public/wasm/transformers
 if [ -d frontend/node_modules/@huggingface/transformers/dist ]; then
   cp frontend/node_modules/@huggingface/transformers/dist/ort-wasm-simd-threaded*.wasm frontend/public/wasm/transformers/ 2>/dev/null || true
@@ -138,7 +137,7 @@ node scripts/build-cartoon-worker.mjs
 echo ""
 echo "=== Asset setup complete ==="
 echo "  Face-API models: frontend/public/models/face-api/   (~1MB, detector+landmarks+expression)"
-echo "  Kokoro voices:   frontend/public/models/kokoro-voices/ (~15MB, 5 defaults)"
+echo "  Kokoro voices:   frontend/public/models/kokoro-voices/ (~2.6MB, 5 defaults)"
 echo "  PDF.js worker:   frontend/public/workers/           (~800KB)"
 echo "  Render worker:   frontend/public/render-worker.js   (~700KB, cartoon)"
 echo "  ONNX Runtime:    frontend/public/wasm/ort/          (if installed)"

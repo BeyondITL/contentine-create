@@ -1,0 +1,141 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp2/harness-portability (uncommitted harness patch at test time; see commit)",
+  "timestamp_utc": "2026-10-31",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chromium (Playwright channel=chrome) HeadlessChrome/153.0.0.0",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264 avc1.420028, hardwareAcceleration=prefer-software",
+    "audio_encoder": "Opus 48 kHz stereo (AAC encoder unavailable in this Chromium)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "bab67050122c6974"
+  },
+  "input_kind": "shipped_example (frontend/src/engine/cartoon/harness/reference-plan.ts)",
+  "commands_or_steps": [
+    "cd frontend && npm ci --ignore-scripts",
+    "bash scripts/setup-assets.sh",
+    "node frontend/src/engine/cartoon/harness/run-c-m1.mjs",
+    "CM1_REQUIRE_BYTE_IDENTICAL=1 node frontend/src/engine/cartoon/harness/run-c-m1.mjs (expected RED)",
+    "ffmpeg decode of audio (s16le md5) and video (framemd5) for render1 vs edited-partial"
+  ],
+  "test_id": "A01",
+  "outcome": "pass",
+  "verification_class": "real_execution",
+  "real_components": [
+    "Kokoro TTS (transformers.js/ONNX Runtime WASM in a Worker)",
+    "cartoon timeline compiler + painter in a Worker (OffscreenCanvas)",
+    "WebCodecs H.264 encoder",
+    "Mediabunny MP4 mux",
+    "OfflineAudioContext mix"
+  ],
+  "substituted_components": [],
+  "observed": {
+    "frames": 1062,
+    "scenes": 3,
+    "duration_sec": 35.42,
+    "tracks": [
+      {
+        "type": "video",
+        "codec": "avc",
+        "durationSec": 35.4,
+        "packetCount": 1062,
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "type": "audio",
+        "codec": "opus",
+        "durationSec": 35.42,
+        "packetCount": 1771,
+        "sampleRate": 48000,
+        "channels": 2
+      }
+    ],
+    "two_renders": {
+      "pre_encode_frame_hashes_identical": true,
+      "mixed_audio_pcm_identical": true,
+      "stream_structure_identical": true,
+      "mp4_bytes_identical": false,
+      "decoded_audio_pcm_md5": {
+        "render1": "a53b430aa43d121de6ce6185301d6ec5",
+        "render2": "a53b430aa43d121de6ce6185301d6ec5",
+        "edited-partial": "a53b430aa43d121de6ce6185301d6ec5"
+      }
+    },
+    "voice_takes": [
+      {
+        "id": "intro-1",
+        "durationSec": 4.575,
+        "pcmHash": "ea2ae9fd535bb5fc2a32e30e39b4741549add6eec9ac9f5bf424f48855800e13"
+      },
+      {
+        "id": "intro-2",
+        "durationSec": 4.575,
+        "pcmHash": "b05b0b137c1cbc9d1d2a7b9b64263704b650dfe5156ec51513e43a921eaec352"
+      },
+      {
+        "id": "duo-1",
+        "durationSec": 3.775,
+        "pcmHash": "57093f355d3aac57dbcf30d19732ca0a50fdaa1345a20b542f166f8c8eb5eea5"
+      },
+      {
+        "id": "duo-2",
+        "durationSec": 4.45,
+        "pcmHash": "db044fd37b17b178161e592cd9b3427e12c10e91a514979eaa9d7dd2e3043e7b"
+      },
+      {
+        "id": "duo-3",
+        "durationSec": 4.1,
+        "pcmHash": "3f2f10effab769d55e391a547f94a88aaad8c976020ae7867c7ecd6b6a7f1eab"
+      },
+      {
+        "id": "outro-1",
+        "durationSec": 5.6,
+        "pcmHash": "7ac0681b28bcf30a3860ad091ee64fb76590662c4e114ec35158ebe0eb16aca2"
+      }
+    ],
+    "plan_hash": "3d8fee32b46d523b152d62af546ff92725f8b922b65bc2cbcd234af3d4b62827"
+  },
+  "timings": {
+    "setup_assets_seconds": 4.3,
+    "npm_ci_seconds": 81,
+    "harness_run_cold_seconds": 188,
+    "harness_run_warm_seconds": 179,
+    "note": "Each harness run = TTS for 6 takes + 2 full renders + 1 partial re-render + uploads. Kokoro model fetched on first TTS use (cached in a 1.4 GB persistent test browser profile)."
+  },
+  "artifacts": [
+    {
+      "path": "artifacts/c-m1/render1.mp4",
+      "bytes": 5246156,
+      "sha256": "224f2628be62ad9d9818362182ab516d912d882cd4d0e9b65c5f78ebd14846c9",
+      "safe_to_share": true
+    },
+    {
+      "path": "artifacts/c-m1/render2.mp4",
+      "bytes": 5241267,
+      "sha256": "6a133197c2f9ddc7850adb9c6fa5cef8a024609dda7bc235d42fe8f3db90f4f7",
+      "safe_to_share": true
+    },
+    {
+      "path": "artifacts/c-m1/edited-partial.mp4",
+      "bytes": 5202114,
+      "sha256": "b7c72989cd0a8294697a90cf0e8695b012f36ebb88e2572563c1a862de589afe",
+      "safe_to_share": true
+    }
+  ],
+  "claim_supported": "On Linux headless Chromium 153 with software H.264, a fresh checkout + documented setup renders the 3-scene shipped sample to a playable 1080p MP4 with real Kokoro narration; two renders produce identical frames, identical mixed audio and identical stream structure.",
+  "claim_not_supported": [
+    "MP4 byte identity on this encoder (observed false; see encoder experiment)",
+    "hardware WebGPU/GPU encode",
+    "macOS/Windows/Safari/Firefox behaviour",
+    "AAC audio (this Chromium fell back to Opus)",
+    "the Next.js app UI path (harness drives the engine directly)"
+  ],
+  "blocker": null
+}

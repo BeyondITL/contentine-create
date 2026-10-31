@@ -1,0 +1,72 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp2/harness-portability (uncommitted harness patch at test time; see commit)",
+  "timestamp_utc": "2026-10-31",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chromium (Playwright channel=chrome) HeadlessChrome/153.0.0.0",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264 avc1.420028, hardwareAcceleration=prefer-software",
+    "audio_encoder": "Opus 48 kHz stereo (AAC encoder unavailable in this Chromium)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "bab67050122c6974"
+  },
+  "input_kind": "shipped_example (frontend/src/engine/cartoon/harness/reference-plan.ts)",
+  "commands_or_steps": [
+    "cd frontend && npm ci --ignore-scripts",
+    "bash scripts/setup-assets.sh",
+    "node frontend/src/engine/cartoon/harness/run-c-m1.mjs",
+    "CM1_REQUIRE_BYTE_IDENTICAL=1 node frontend/src/engine/cartoon/harness/run-c-m1.mjs (expected RED)",
+    "ffmpeg decode of audio (s16le md5) and video (framemd5) for render1 vs edited-partial"
+  ],
+  "test_id": "A02",
+  "outcome": "pass",
+  "verification_class": "real_execution",
+  "real_components": [
+    "Kokoro TTS (transformers.js/ONNX Runtime WASM in a Worker)",
+    "cartoon timeline compiler + painter in a Worker (OffscreenCanvas)",
+    "WebCodecs H.264 encoder",
+    "Mediabunny MP4 mux",
+    "OfflineAudioContext mix"
+  ],
+  "substituted_components": [],
+  "expected": "Only scene 2 visuals change; narration audio and all scene timings stay fixed.",
+  "observed": {
+    "edit": "scene-duo background seed + second character position/palette (buildEditedReferencePlan)",
+    "render_mode": "partial",
+    "rerendered_scenes": [
+      "scene-duo"
+    ],
+    "reused_scenes": [
+      "scene-intro",
+      "scene-outro"
+    ],
+    "rerendered_frame_ranges": [
+      [
+        365,
+        805
+      ]
+    ],
+    "decoded_frame_diffs_vs_original": {
+      "scene-intro": 0,
+      "scene-duo": 440,
+      "scene-outro": 0
+    },
+    "decoded_audio_pcm_identical": true,
+    "duration_and_packet_counts_identical": true,
+    "edited_plan_hash": "2ca5bb0d9fce26bc83c6a60b74d2e0587cb951832e1806d6afe46db3ef9125e0"
+  },
+  "comparison_semantics": "Decoded video compared per frame (ffmpeg framemd5) and decoded audio compared as PCM; encoded-chunk reuse inferred from identical decoded frames outside the edited scene plus the renderer's reuse report.",
+  "claim_supported": "A timing-neutral visual edit to the middle scene re-renders only that scene (observed selective reuse), leaves the other scenes' decoded frames and the decoded narration bit-identical, and keeps duration/packet counts.",
+  "claim_not_supported": [
+    "edit made through the editor UI or an assistant (engine API called directly)",
+    "narration-changing edits (A03)",
+    "persistence across browser restart (A05)"
+  ],
+  "blocker": null
+}

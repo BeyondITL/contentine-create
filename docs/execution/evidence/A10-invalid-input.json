@@ -1,0 +1,55 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp4/commands",
+  "timestamp_utc": "2026-10-31",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chrome (Playwright channel=chrome) HeadlessChrome/153.0.0.0",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264, prefer-software",
+    "audio_encoder": "Opus",
+    "storage": "IndexedDB (on-disk Chrome profile)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "67ab5c9086e694c1"
+  },
+  "tested_commit": "f6f5da4",
+  "test_id": "A10",
+  "outcome": "pass",
+  "verification_class": "contract_test",
+  "input_kind": "synthetic fixture",
+  "commands_or_steps": [
+    "cd frontend && npx vitest run src/lib/cartoon/commands",
+    "cd bridge && npm test"
+  ],
+  "real_components": [
+    "patch validator",
+    "service argument validation",
+    "MCP zod schemas"
+  ],
+  "substituted_components": [
+    "fake ports"
+  ],
+  "expected": "Malformed, unknown, non-finite, oversized or out-of-range input is rejected before side effects; a bad op voids the whole patch.",
+  "observed": {
+    "rejected": [
+      "unknown op/field, move/copy",
+      "immutable/out-of-scope/proto paths",
+      "@id not found",
+      "NaN/\u00b1Infinity/wrong types",
+      "33 ops, >16 KiB values, 500-char title, 700-char line, position outside [-0.5,1.5]",
+      "unknown top-level arguments, bad idempotency keys, unknown commands (service and bridge)"
+    ],
+    "no_partial_write": "plan unchanged after any rejected patch"
+  },
+  "comparison_semantics": "Error codes + stored state.",
+  "claim_supported": "The command surface validates complete input at runtime (not only via TypeScript types) before writing.",
+  "claim_not_supported": [
+    "fuzzing"
+  ],
+  "blocker": null
+}

@@ -9,6 +9,7 @@ import CartoonScriptStep from '@/components/cartoon/CartoonScriptStep';
 import CartoonStyleStep from '@/components/cartoon/CartoonStyleStep';
 import CartoonGenerateStep from '@/components/cartoon/CartoonGenerateStep';
 import CartoonTimelineEditor from '@/components/cartoon/CartoonTimelineEditor';
+import SavedCartoonProjects from '@/components/cartoon/SavedCartoonProjects';
 import VoiceStep from '@/components/video/VoiceStep';
 
 const HEADINGS: Record<number, { title: string; subtitle: string }> = {
@@ -63,6 +64,7 @@ export default function CartoonPage() {
             <p className="text-[13px] md:text-sm text-muted mt-0.5">{HEADINGS[step].subtitle}</p>
           </div>
 
+          {step === 1 && <SavedCartoonProjects />}
           {step === 1 && <CartoonScriptStep />}
           {step === 2 && <CartoonStyleStep />}
           {step === 3 && <VoiceStep />}
