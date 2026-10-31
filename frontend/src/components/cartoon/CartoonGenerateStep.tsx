@@ -52,6 +52,7 @@ export default function CartoonGenerateStep() {
   const planRef = useRef<ScenePlan | null>(null);
   const takesRef = useRef<Map<string, VoiceTake> | null>(null);
   const resultRef = useRef<CartoonRenderResult | null>(null);
+  const projectRef = useRef<{ workspaceId: string; revision: number; plan: ScenePlan } | null>(null);
 
   // Revoke the object URL when it changes or on unmount (avoid blob leaks).
   useEffect(() => {
@@ -148,6 +149,19 @@ export default function CartoonGenerateStep() {
       planRef.current = plan;
       takesRef.current = takes;
       resultRef.current = result;
+      // Save the complete project (plan, pinned takes, render cache) so it
+      // survives a browser restart. A storage failure doesn't lose the render.
+      try {
+        const ports = await import('@/lib/cartoon/commands/browser-ports');
+        projectRef.current = await ports.ensureLocalProject({ plan, takes, result });
+      } catch (saveErr) {
+        projectRef.current = null;
+        toast({
+          variant: 'error',
+          title: 'Rendered, but not saved on this device',
+          description: saveErr instanceof Error ? saveErr.message : 'Browser storage refused the project.',
+        });
+      }
       // Seed the version history with the first render (restorable baseline).
       await cartoon.pushSnapshot({
         projectId: plan.id,
@@ -194,6 +208,7 @@ export default function CartoonGenerateStep() {
       result: resultRef.current,
       // MVP backgrounds are procedural (painted from seed) — no decoded assets.
       bgAssets: new Map<string, ImageBitmap>(),
+      project: projectRef.current ?? undefined,
     });
   }
 

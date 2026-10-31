@@ -40,6 +40,13 @@ export interface RenderSession {
   takes: Map<string, VoiceTake>;
   result: CartoonRenderResult;
   bgAssets: Map<string, ImageBitmap>;
+  /**
+   * The saved project this session edits (project store): its current
+   * revision and plan. Edits commit through the shared command layer with
+   * this revision as the compare-and-swap precondition. The current plan can
+   * be ahead of `plan` (edited but not yet rendered).
+   */
+  project?: { workspaceId: string; revision: number; plan: ScenePlan };
 }
 
 interface CartoonState {

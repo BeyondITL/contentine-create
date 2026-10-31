@@ -71,9 +71,11 @@ async function fakeRender(plan: ScenePlan): Promise<CartoonRenderResult> {
     audioPcmHash: 'a'.repeat(64),
     timing: { totalFrames: 30 } as unknown as CartoonRenderResult['timing'],
     decoderConfig: { codec: 'avc1.640028', codedWidth: 1920, codedHeight: 1080, description: new Uint8Array([1, 100, 0, 40]) },
+    settingsKey: 's'.repeat(64),
     sceneRecords: plan.scenes.map((s, i) => ({
       sceneId: s.id,
       contentHash: `hash-${s.id}`,
+      renderKey: i === 1 ? null : `key-${s.id}`,
       startFrame: i * 10,
       frameCount: 10,
       chunks: [
@@ -157,6 +159,7 @@ describe('project-store v1', () => {
     expect(r.result.planHash).toBe(orig.planHash);
     expect([...new Uint8Array(await r.result.mp4.arrayBuffer())]).toEqual([...new Uint8Array(await orig.mp4.arrayBuffer())]);
     expect([...(r.result.decoderConfig.description as Uint8Array)]).toEqual([1, 100, 0, 40]);
+    expect(r.result.settingsKey).toBe(orig.settingsKey);
     expect(r.result.sceneRecords.map((s) => ({ ...s, chunks: s.chunks.map((c) => ({ ...c, data: [...c.data] })) }))).toEqual(
       orig.sceneRecords.map((s) => ({ ...s, chunks: s.chunks.map((c) => ({ ...c, data: [...c.data] })) })),
     );

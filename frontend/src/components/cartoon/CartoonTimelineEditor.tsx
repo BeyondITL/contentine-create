@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Download, Wand2, Loader2, AlertCircle, Monitor } from 'lucide-react';
+import { ArrowLeft, Download, Wand2, Loader2, AlertCircle, Monitor, RefreshCw, X } from 'lucide-react';
 import { useCartoonStore } from '@/stores/cartoon-store';
 import { ProgressBar, useToast } from '@/components/ui';
 import AiGeneratedBadge from '@/components/shared/AiGeneratedBadge';
@@ -25,6 +25,8 @@ type EngineModule = typeof import('@/engine/cartoon');
 type EntranceType = NonNullable<CharacterBlock['entrance']>['type'];
 
 const clonePlan = (p: ScenePlan): ScenePlan => JSON.parse(JSON.stringify(p)) as ScenePlan;
+const newIdempotencyKey = () => `ui-${crypto.randomUUID()}`;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const takeKey = (line: { id: string; takeRef?: string }) => line.takeRef ?? line.id;
 
 /** True when a line's on-screen text no longer matches its synthesized take. */
@@ -75,9 +77,15 @@ export default function CartoonTimelineEditor() {
   const renderedPlanRef = useRef<ScenePlan | null>(session ? clonePlan(session.plan) : null);
   const bgAssetsRef = useRef<Map<string, ImageBitmap>>(session?.bgAssets ?? new Map());
   const engineRef = useRef<EngineModule | null>(null);
+  /** Saved-project base (revision + plan) — the CAS precondition for the next commit. */
+  const projectRef = useRef(session?.project ?? null);
+  const activeRunRef = useRef<string | null>(null);
 
   // ── Working editing state ────────────────────────────────────────────────
-  const [workingPlan, setWorkingPlan] = useState<ScenePlan | null>(session ? clonePlan(session.plan) : null);
+  const [workingPlan, setWorkingPlan] = useState<ScenePlan | null>(
+    session ? clonePlan(session.project?.plan ?? session.plan) : null,
+  );
+  const [conflict, setConflict] = useState<string | null>(null);
   const [engineReady, setEngineReady] = useState(false);
   const [compiled, setCompiled] = useState<CompiledTimeline | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(session?.plan.scenes[0]?.id ?? null);
@@ -222,56 +230,101 @@ export default function CartoonTimelineEditor() {
   // ── Scoped re-roll: re-voice stale lines, then partial re-render ─────────
   const dirtyCount = dirty.size;
 
+  /**
+   * Re-roll = commit the draft through the SAME command path an assistant
+   * uses: scene_apply_patch (CAS on the saved revision) → voice_synthesize
+   * (only lines whose take identity changed) → render_start → run_inspect.
+   * The new baseline is read back from the project store, so what the editor
+   * shows is exactly what was saved.
+   */
   const handleReroll = useCallback(async () => {
-    const engine = engineRef.current;
-    if (!engine || !workingPlan || !resultRef.current || !renderedPlanRef.current || busy) return;
+    if (!workingPlan || !resultRef.current || !renderedPlanRef.current || busy) return;
 
     setBusy(true);
     setRerollError(null);
+    setConflict(null);
     setLastReport(null);
     setBusyPct(0);
 
     try {
-      // 1) Re-voice only the lines whose text changed (surgical — synthesizeTakes
-      //    skips keys already present, so drop the stale ones first).
-      const staleScenes = workingPlan.scenes.filter((s) => hasStaleTake(s, takesRef.current));
-      if (staleScenes.length > 0) {
-        setBusyMsg('Re-voicing edited lines…');
-        const nextTakes = new Map(takesRef.current);
-        for (const scene of staleScenes) {
-          for (const line of scene.dialogue) {
-            if (!takeMatchesLine(nextTakes.get(takeKey(line)), line)) nextTakes.delete(takeKey(line));
-          }
-        }
-        const synthed = await engine.synthesizeTakes(workingPlan, nextTakes, (done, total) => {
-          setBusyPct(total > 0 ? Math.round((done / total) * 25) : 0);
+      const [ports, { planToPatch }, store] = await Promise.all([
+        import('@/lib/cartoon/commands/browser-ports'),
+        import('@/lib/cartoon/commands/plan-diff'),
+        import('@/lib/cartoon/project-store'),
+      ]);
+      const svc = ports.getCartoonCommands();
+      const ctx = ports.localOwnerContext();
+      const projectId = workingPlan.id;
+
+      const base =
+        projectRef.current ??
+        (await ports.ensureLocalProject({ plan: renderedPlanRef.current, takes: takesRef.current, result: resultRef.current }));
+      let revision = base.revision;
+
+      // 1) Commit the draft as a bounded patch against the saved revision.
+      const ops = planToPatch(base.plan, workingPlan);
+      if (ops.length > 0) {
+        setBusyMsg('Saving edits…');
+        const applied = await svc.applyPatch(ctx, {
+          projectId,
+          expectedRevision: revision,
+          ops,
+          idempotencyKey: newIdempotencyKey(),
+          note: 'timeline editor re-roll',
         });
-        takesRef.current = synthed;
-        recompile();
+        revision = applied.revision;
+      }
+      projectRef.current = { workspaceId: ports.LOCAL_WORKSPACE, revision, plan: clonePlan(workingPlan) };
+
+      // 2) Re-voice only lines whose text/voice/speed no longer match their take.
+      setBusyMsg('Re-voicing edited lines…');
+      setBusyPct(5);
+      const voiced = await svc.voiceSynthesize(ctx, { projectId, expectedRevision: revision, idempotencyKey: newIdempotencyKey() });
+      revision = voiced.revision;
+      projectRef.current = { ...projectRef.current, revision };
+
+      // 3) Render run bound to this revision; partial when the cache allows it.
+      setBusyMsg('Re-rendering edited scenes…');
+      const ack = await svc.renderStart(ctx, { projectId, expectedRevision: revision, idempotencyKey: newIdempotencyKey() });
+      activeRunRef.current = ack.runId;
+      let run = await svc.runInspect(ctx, { runId: ack.runId });
+      while (!run.terminal) {
+        setBusyPct(25 + Math.round(run.progress * 0.75));
+        await sleep(300);
+        run = await svc.runInspect(ctx, { runId: ack.runId });
+      }
+      activeRunRef.current = null;
+      if (run.state !== 'succeeded') {
+        throw new Error(
+          run.state === 'cancelled'
+            ? 'Re-roll cancelled — your previous render is unchanged.'
+            : `Render ${run.state}: ${run.failure?.message ?? 'unknown reason'}`,
+        );
       }
 
-      // 2) Partial re-render — reuse every untouched scene's encoded chunks.
-      setBusyMsg('Re-rendering edited scenes…');
-      const { result, partial } = await engine.rerenderEditedProject(
-        renderedPlanRef.current,
-        resultRef.current,
-        workingPlan,
-        {
-          takes: takesRef.current,
-          backgroundAssets: bgAssetsRef.current,
-          workerUrl: '/render-worker.js',
-          onPhaseChange: (_phase, msg) => setBusyMsg(msg),
-          onProgress: (pct) => setBusyPct(25 + Math.round(pct * 0.75)),
-        },
-      );
-
-      // 3) Commit the new baseline + snapshot + hand back to the store session.
+      // 4) Read the committed baseline back from the store.
+      const loaded = await store.loadProject(ports.LOCAL_WORKSPACE, projectId);
+      const rendered = loaded.lastRender;
+      if (!rendered || rendered.result.planHash !== run.inputPlanHash) {
+        throw new Error('The render finished but its cache was not saved for this revision.');
+      }
+      const result = rendered.result;
+      const partial: PartialRenderReport = {
+        mode: run.partial?.mode ?? 'full',
+        rerenderedScenes: run.partial?.rerenderedScenes ?? [],
+        rerenderedFrameRanges: [],
+        reusedScenes: run.partial?.reusedScenes ?? [],
+        fullRenderReason: run.partial?.fullRenderReason ?? undefined,
+      };
+      takesRef.current = loaded.takes;
       resultRef.current = result;
-      renderedPlanRef.current = clonePlan(workingPlan);
+      renderedPlanRef.current = clonePlan(rendered.renderedPlan);
+      projectRef.current = { workspaceId: ports.LOCAL_WORKSPACE, revision: loaded.revision, plan: clonePlan(loaded.plan) };
       setRenderedHash(result.planHash);
       setLastReport(partial);
       setBusyPct(100);
       setDirty(new Map());
+      recompile();
 
       const label =
         partial.mode === 'partial'
@@ -285,10 +338,11 @@ export default function CartoonTimelineEditor() {
       });
 
       updateSession({
-        plan: clonePlan(workingPlan),
+        plan: clonePlan(rendered.renderedPlan),
         takes: takesRef.current,
         result,
         bgAssets: bgAssetsRef.current,
+        project: projectRef.current,
       });
 
       const reused = partial.reusedScenes.length;
@@ -301,14 +355,56 @@ export default function CartoonTimelineEditor() {
             : `Full render: ${partial.fullRenderReason ?? 'timing changed'}.`,
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Re-roll failed. Please try again.';
-      setRerollError(msg);
-      toast({ variant: 'error', title: 'Re-roll failed', description: msg });
+      activeRunRef.current = null;
+      const code = (err as { code?: string }).code;
+      if (code === 'REVISION_CONFLICT') {
+        const msg = 'This project was changed somewhere else (for example by your assistant) since you opened it. Load the latest saved version to continue — your unsaved edits here will be replaced.';
+        setConflict(msg);
+        toast({ variant: 'error', title: 'Project changed elsewhere', description: 'Load the latest saved version to continue.' });
+      } else {
+        const msg = err instanceof Error ? err.message : 'Re-roll failed. Please try again.';
+        setRerollError(msg);
+        toast({ variant: 'error', title: 'Re-roll failed', description: msg });
+      }
     } finally {
       setBusy(false);
       setBusyMsg('');
     }
   }, [workingPlan, busy, recompile, pushSnapshot, updateSession, toast]);
+
+  const handleCancelRun = useCallback(async () => {
+    const runId = activeRunRef.current;
+    if (!runId) return;
+    const ports = await import('@/lib/cartoon/commands/browser-ports');
+    await ports.getCartoonCommands().runCancel(ports.localOwnerContext(), { runId });
+  }, []);
+
+  /** Replace the editor state with the latest saved revision (after a conflict). */
+  const handleLoadLatest = useCallback(async () => {
+    if (!workingPlan) return;
+    try {
+      const [ports, store] = await Promise.all([import('@/lib/cartoon/commands/browser-ports'), import('@/lib/cartoon/project-store')]);
+      const loaded = await store.loadProject(ports.LOCAL_WORKSPACE, workingPlan.id);
+      if (!loaded.lastRender) throw new Error('The saved project has no render yet.');
+      takesRef.current = loaded.takes;
+      resultRef.current = loaded.lastRender.result;
+      renderedPlanRef.current = clonePlan(loaded.lastRender.renderedPlan);
+      projectRef.current = { workspaceId: ports.LOCAL_WORKSPACE, revision: loaded.revision, plan: clonePlan(loaded.plan) };
+      setRenderedHash(loaded.lastRender.result.planHash);
+      setWorkingPlan(clonePlan(loaded.plan));
+      setConflict(null);
+      updateSession({
+        plan: clonePlan(loaded.lastRender.renderedPlan),
+        takes: loaded.takes,
+        result: loaded.lastRender.result,
+        bgAssets: bgAssetsRef.current,
+        project: projectRef.current,
+      });
+      toast({ variant: 'info', title: `Loaded revision ${loaded.revision}`, description: 'You are editing the latest saved version.' });
+    } catch (err) {
+      setRerollError(err instanceof Error ? err.message : 'Could not load the saved project.');
+    }
+  }, [workingPlan, updateSession, toast]);
 
   // ── History ──────────────────────────────────────────────────────────────
   const handleRestore = useCallback((snap: PlanSnapshot) => {
@@ -418,7 +514,36 @@ export default function CartoonTimelineEditor() {
 
           {/* Re-roll control */}
           <div className="bento-card p-4 space-y-3">
-            {busy && <ProgressBar percent={busyPct} message={busyMsg || 'Working…'} />}
+            {busy && (
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <ProgressBar percent={busyPct} message={busyMsg || 'Working…'} />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelRun}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] md:min-h-0 text-xs font-medium text-muted hover:text-text dark:hover:text-white transition-colors"
+                >
+                  <X size={14} /> Cancel
+                </button>
+              </div>
+            )}
+
+            {conflict && (
+              <div className="p-3 bg-danger/5 border border-danger/20 rounded-lg space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={15} className="text-danger mt-0.5 shrink-0" />
+                  <p className="text-xs text-danger break-words">{conflict}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLoadLatest}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface dark:bg-[#2a2a2a] text-xs font-medium text-text dark:text-white hover:bg-border-light dark:hover:bg-[#333] transition-colors"
+                >
+                  <RefreshCw size={13} /> Load latest saved version
+                </button>
+              </div>
+            )}
 
             {rerollError && (
               <div className="p-3 bg-danger/5 border border-danger/20 rounded-lg flex items-start gap-2">

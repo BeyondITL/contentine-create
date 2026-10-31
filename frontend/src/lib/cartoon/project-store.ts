@@ -38,9 +38,18 @@ import { hashScenePlan, sha256Hex, validateScenePlan } from '@/engine/cartoon/sc
 
 export const PROJECT_FORMAT_VERSION = 1 as const;
 export const PROJECT_DB_NAME = 'contentine-cartoon-projects';
-const DB_VERSION = 1;
+/**
+ * IndexedDB schema version (independent of the manifest formatVersion).
+ *  v1: manifests, blobs
+ *  v2: + revisions (plan history for undo), commands (idempotency records),
+ *        runs (render run lifecycle). Additive; v1 data is untouched.
+ */
+export const PROJECT_DB_VERSION = 2;
 const MANIFESTS = 'manifests';
 const BLOBS = 'blobs';
+export const REVISIONS = 'revisions';
+export const COMMANDS = 'commands';
+export const RUNS = 'runs';
 
 export const PROJECT_LIMITS = {
   maxTakes: 1000,
@@ -111,9 +120,13 @@ export interface StoredRender {
   audioPcmHash: string;
   timing: PlanTiming;
   decoderConfig: { codec: string; codedWidth: number; codedHeight: number; description?: BlobRef };
+  /** Render settings identity; absent (older saves) ⇒ the cache is never spliced. */
+  settingsKey?: string;
   scenes: Array<{
     sceneId: string;
     contentHash: string;
+    /** Scene render identity; absent/null ⇒ that scene is always re-rendered. */
+    renderKey?: string | null;
     startFrame: number;
     frameCount: number;
     /** Concatenated chunk bytes; `index` rows are [byteLength, type, timestamp, duration]. */
@@ -200,10 +213,12 @@ interface BlobRow {
 
 const blobKey = (workspaceId: string, sha256: string) => `${workspaceId}/${sha256}`;
 
-function openDB(): Promise<IDBDatabase> {
+export function openProjectDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(PROJECT_DB_NAME, DB_VERSION);
+    const req = indexedDB.open(PROJECT_DB_NAME, PROJECT_DB_VERSION);
     req.onupgradeneeded = () => {
+      // Every step is additive and idempotent, so any older version upgrades
+      // by running the steps it is missing.
       const db = req.result;
       if (!db.objectStoreNames.contains(MANIFESTS)) {
         db.createObjectStore(MANIFESTS, { keyPath: ['workspaceId', 'projectId'] });
@@ -211,6 +226,16 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(BLOBS)) {
         const blobs = db.createObjectStore(BLOBS, { keyPath: 'key' });
         blobs.createIndex('workspaceId', 'workspaceId', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(REVISIONS)) {
+        db.createObjectStore(REVISIONS, { keyPath: ['workspaceId', 'projectId', 'revision'] });
+      }
+      if (!db.objectStoreNames.contains(COMMANDS)) {
+        db.createObjectStore(COMMANDS, { keyPath: ['workspaceId', 'actorId', 'key'] });
+      }
+      if (!db.objectStoreNames.contains(RUNS)) {
+        const runs = db.createObjectStore(RUNS, { keyPath: ['workspaceId', 'runId'] });
+        runs.createIndex('project', ['workspaceId', 'projectId'], { unique: false });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -260,40 +285,9 @@ export async function saveProject(
 
   // Hash everything BEFORE opening the transaction: awaiting crypto inside an
   // IndexedDB transaction would let it auto-commit half-way.
-  const pending = new Map<string, Uint8Array>();
-  let projectBytes = 0;
-  const addBlob = async (bytes: Uint8Array, label: string): Promise<BlobRef> => {
-    if (bytes.byteLength > PROJECT_LIMITS.maxBlobBytes) {
-      throw new ProjectStoreError('LIMIT_EXCEEDED', `${label} is ${bytes.byteLength} bytes (limit ${PROJECT_LIMITS.maxBlobBytes})`);
-    }
-    const sha256 = await sha256Hex(bytes);
-    if (!pending.has(sha256)) {
-      pending.set(sha256, bytes);
-      projectBytes += bytes.byteLength;
-      if (projectBytes > PROJECT_LIMITS.maxProjectBytes) {
-        throw new ProjectStoreError('LIMIT_EXCEEDED', `Project exceeds ${PROJECT_LIMITS.maxProjectBytes} bytes`);
-      }
-    }
-    return { sha256, size: bytes.byteLength };
-  };
-
-  const takes: StoredTake[] = [];
-  for (const [key, take] of input.takes) {
-    const pcm = await addBlob(toBytes(take.pcm), `take '${key}'`);
-    if (take.pcmHash && take.pcmHash !== pcm.sha256) {
-      throw new ProjectStoreError('INVALID_PROJECT', `Take '${key}' pcmHash does not match its PCM bytes`);
-    }
-    takes.push({
-      key,
-      dialogueId: take.dialogueId,
-      text: take.text,
-      voiceProfileRef: take.voiceProfileRef,
-      sampleRate: take.sampleRate,
-      durationSec: take.durationSec,
-      visemes: take.visemes,
-      pcm,
-    });
-  }
+  const collector = new BlobCollector();
+  const addBlob = collector.add;
+  const takes = await prepareTakes(input.takes, collector);
 
   const backgroundImages: StoredAsset[] = [];
   for (const [ref, blob] of backgrounds) {
@@ -304,57 +298,11 @@ export async function saveProject(
     audioAssets.push({ ref, mime: 'application/octet-stream', data: await addBlob(new Uint8Array(buf.slice(0)), `audio asset '${ref}'`) });
   }
 
-  let lastRender: StoredRender | undefined;
-  if (input.lastRender) {
-    const { renderedPlan, result } = input.lastRender;
-    const scenes: StoredRender['scenes'] = [];
-    for (const rec of result.sceneRecords) {
-      const total = rec.chunks.reduce((n, c) => n + c.data.byteLength, 0);
-      const joined = new Uint8Array(total);
-      let off = 0;
-      for (const c of rec.chunks) {
-        joined.set(c.data, off);
-        off += c.data.byteLength;
-      }
-      scenes.push({
-        sceneId: rec.sceneId,
-        contentHash: rec.contentHash,
-        startFrame: rec.startFrame,
-        frameCount: rec.frameCount,
-        chunks: await addBlob(joined, `render chunks for '${rec.sceneId}'`),
-        index: rec.chunks.map((c) => [c.data.byteLength, c.type, c.timestamp, c.duration]),
-      });
-    }
-    const dc = result.decoderConfig;
-    lastRender = {
-      renderedPlan,
-      renderedPlanHash: await hashScenePlan(renderedPlan),
-      mp4: await addBlob(new Uint8Array(await result.mp4.arrayBuffer()), 'rendered MP4'),
-      fps: result.fps,
-      width: result.width,
-      height: result.height,
-      durationSec: result.durationSec,
-      totalFrames: result.totalFrames,
-      audioCodec: result.audioCodec,
-      audioPcmHash: result.audioPcmHash,
-      timing: result.timing,
-      decoderConfig: {
-        codec: dc.codec,
-        codedWidth: dc.codedWidth,
-        codedHeight: dc.codedHeight,
-        description: dc.description ? await addBlob(toBytes(dc.description), 'decoder description') : undefined,
-      },
-      scenes,
-      savedAt: Date.now(),
-    };
-    if (lastRender.renderedPlanHash !== result.planHash) {
-      throw new ProjectStoreError('INVALID_PROJECT', 'lastRender.result was not rendered from lastRender.renderedPlan');
-    }
-  }
+  const lastRender = input.lastRender ? await prepareRender(input.lastRender, collector) : undefined;
 
   const planHash = await hashScenePlan(input.plan);
   const savedAt = Date.now();
-  const db = await openDB();
+  const db = await openProjectDB();
   try {
     const revision = await new Promise<number>((resolve, reject) => {
       let tx: IDBTransaction;
@@ -374,19 +322,12 @@ export async function saveProject(
         const existing = current.result as ProjectManifestV1 | undefined;
         const stored = existing ? existing.revision : null;
         if (stored !== opts.expectedRevision) {
-          failure = new ProjectStoreError(
-            'REVISION_CONFLICT',
-            `Project '${projectId}' is at revision ${stored ?? 'none'}, expected ${opts.expectedRevision ?? 'none'}`,
-            { storedRevision: stored, expectedRevision: opts.expectedRevision },
-          );
+          failure = conflict(projectId, stored, opts.expectedRevision);
           tx.abort();
           return;
         }
         try {
-          for (const [sha256, bytes] of pending) {
-            const row: BlobRow = { key: blobKey(workspaceId, sha256), workspaceId, sha256, bytes: bytes.buffer as ArrayBuffer };
-            blobs.put(row);
-          }
+          collector.putAll(blobs, workspaceId);
           nextRevision = (stored ?? 0) + 1;
           const manifest: ProjectManifestV1 = {
             formatVersion: PROJECT_FORMAT_VERSION,
@@ -416,10 +357,122 @@ export async function saveProject(
     await collectGarbage(db, workspaceId).catch(() => {
       // Orphaned blobs only cost space; the committed project is consistent.
     });
-    return { revision, planHash, savedAt, bytesWritten: projectBytes };
+    return { revision, planHash, savedAt, bytesWritten: collector.bytes };
   } finally {
     db.close();
   }
+}
+
+function conflict(projectId: string, stored: number | null, expected: number | null): ProjectStoreError {
+  return new ProjectStoreError(
+    'REVISION_CONFLICT',
+    `Project '${projectId}' is at revision ${stored ?? 'none'}, expected ${expected ?? 'none'}`,
+    { storedRevision: stored, expectedRevision: expected },
+  );
+}
+
+/** Hashes and bounds blobs before a transaction opens; writes them inside it. */
+class BlobCollector {
+  readonly pending = new Map<string, Uint8Array>();
+  bytes = 0;
+
+  add = async (bytes: Uint8Array, label: string): Promise<BlobRef> => {
+    if (bytes.byteLength > PROJECT_LIMITS.maxBlobBytes) {
+      throw new ProjectStoreError('LIMIT_EXCEEDED', `${label} is ${bytes.byteLength} bytes (limit ${PROJECT_LIMITS.maxBlobBytes})`);
+    }
+    const sha256 = await sha256Hex(bytes);
+    if (!this.pending.has(sha256)) {
+      this.pending.set(sha256, bytes);
+      this.bytes += bytes.byteLength;
+      if (this.bytes > PROJECT_LIMITS.maxProjectBytes) {
+        throw new ProjectStoreError('LIMIT_EXCEEDED', `Project exceeds ${PROJECT_LIMITS.maxProjectBytes} bytes`);
+      }
+    }
+    return { sha256, size: bytes.byteLength };
+  };
+
+  putAll(store: IDBObjectStore, workspaceId: string): void {
+    for (const [sha256, bytes] of this.pending) {
+      const exact = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength ? bytes : bytes.slice();
+      const row: BlobRow = { key: blobKey(workspaceId, sha256), workspaceId, sha256, bytes: exact.buffer as ArrayBuffer };
+      store.put(row);
+    }
+  }
+}
+
+async function prepareTakes(takes: Map<string, VoiceTake>, collector: BlobCollector): Promise<StoredTake[]> {
+  const out: StoredTake[] = [];
+  for (const [key, take] of takes) {
+    const pcm = await collector.add(toBytes(take.pcm), `take '${key}'`);
+    if (take.pcmHash && take.pcmHash !== pcm.sha256) {
+      throw new ProjectStoreError('INVALID_PROJECT', `Take '${key}' pcmHash does not match its PCM bytes`);
+    }
+    out.push({
+      key,
+      dialogueId: take.dialogueId,
+      text: take.text,
+      voiceProfileRef: take.voiceProfileRef,
+      sampleRate: take.sampleRate,
+      durationSec: take.durationSec,
+      visemes: take.visemes,
+      pcm,
+    });
+  }
+  return out;
+}
+
+async function prepareRender(
+  input: { renderedPlan: ScenePlan; result: CartoonRenderResult },
+  collector: BlobCollector,
+): Promise<StoredRender> {
+  const addBlob = collector.add;
+  const { renderedPlan, result } = input;
+  const scenes: StoredRender['scenes'] = [];
+  for (const rec of result.sceneRecords) {
+    const total = rec.chunks.reduce((n, c) => n + c.data.byteLength, 0);
+    const joined = new Uint8Array(total);
+    let off = 0;
+    for (const c of rec.chunks) {
+      joined.set(c.data, off);
+      off += c.data.byteLength;
+    }
+    scenes.push({
+      sceneId: rec.sceneId,
+      contentHash: rec.contentHash,
+      renderKey: rec.renderKey ?? null,
+      startFrame: rec.startFrame,
+      frameCount: rec.frameCount,
+      chunks: await addBlob(joined, `render chunks for '${rec.sceneId}'`),
+      index: rec.chunks.map((c) => [c.data.byteLength, c.type, c.timestamp, c.duration]),
+    });
+  }
+  const dc = result.decoderConfig;
+  const lastRender: StoredRender = {
+    renderedPlan,
+    renderedPlanHash: await hashScenePlan(renderedPlan),
+    mp4: await addBlob(new Uint8Array(await result.mp4.arrayBuffer()), 'rendered MP4'),
+    fps: result.fps,
+    width: result.width,
+    height: result.height,
+    durationSec: result.durationSec,
+    totalFrames: result.totalFrames,
+    audioCodec: result.audioCodec,
+    audioPcmHash: result.audioPcmHash,
+    timing: result.timing,
+    decoderConfig: {
+      codec: dc.codec,
+      codedWidth: dc.codedWidth,
+      codedHeight: dc.codedHeight,
+      description: dc.description ? await addBlob(toBytes(dc.description), 'decoder description') : undefined,
+    },
+    settingsKey: result.settingsKey,
+    scenes,
+    savedAt: Date.now(),
+  };
+  if (lastRender.renderedPlanHash !== result.planHash) {
+    throw new ProjectStoreError('INVALID_PROJECT', 'lastRender.result was not rendered from lastRender.renderedPlan');
+  }
+  return lastRender;
 }
 
 function manifestRefs(m: ProjectManifestV1): BlobRef[] {
@@ -431,23 +484,328 @@ function manifestRefs(m: ProjectManifestV1): BlobRef[] {
   return refs;
 }
 
-/** Delete blobs no manifest in the workspace references (one atomic pass). */
+/** Delete blobs no manifest or run artifact in the workspace references (one atomic pass). */
 async function collectGarbage(db: IDBDatabase, workspaceId: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction([MANIFESTS, BLOBS], 'readwrite');
-    const range = IDBKeyRange.bound([workspaceId, ''], [workspaceId, '￿']);
+    const tx = db.transaction([MANIFESTS, BLOBS, RUNS], 'readwrite');
+    const range = IDBKeyRange.bound([workspaceId, ''], [workspaceId, '\uffff']);
+    const live = new Set<string>();
     const mreq = tx.objectStore(MANIFESTS).getAll(range);
     mreq.onsuccess = () => {
-      const live = new Set<string>();
       for (const m of mreq.result as ProjectManifestV1[]) for (const r of manifestRefs(m)) live.add(blobKey(workspaceId, r.sha256));
-      const kreq = tx.objectStore(BLOBS).index('workspaceId').getAllKeys(IDBKeyRange.only(workspaceId));
-      kreq.onsuccess = () => {
-        for (const key of kreq.result as string[]) if (!live.has(key)) tx.objectStore(BLOBS).delete(key);
+      const rreq = tx.objectStore(RUNS).getAll(range);
+      rreq.onsuccess = () => {
+        for (const run of rreq.result as StoredRunBase[]) if (run.artifact) live.add(blobKey(workspaceId, run.artifact.mp4.sha256));
+        const kreq = tx.objectStore(BLOBS).index('workspaceId').getAllKeys(IDBKeyRange.only(workspaceId));
+        kreq.onsuccess = () => {
+          for (const key of kreq.result as string[]) if (!live.has(key)) tx.objectStore(BLOBS).delete(key);
+        };
       };
     };
     tx.oncomplete = () => resolve();
     tx.onabort = () => reject(tx.error);
   });
+}
+
+// ─── Incremental updates (used by the commands layer) ────────────────────────
+
+/** One plan revision, kept for history/undo. */
+export interface RevisionRecord {
+  workspaceId: string;
+  projectId: string;
+  revision: number;
+  planHash: string;
+  plan: ScenePlan;
+  savedAt: number;
+  actorId: string;
+  note: string;
+}
+
+/** The fields of a stored run the store itself needs (GC, scoping). */
+export interface StoredRunBase {
+  workspaceId: string;
+  runId: string;
+  projectId: string;
+  artifact?: { mp4: BlobRef };
+}
+
+/** A record written in the SAME transaction as a project change (e.g. an idempotency record). */
+export type ExtraRecord = { store: typeof COMMANDS; value: { workspaceId: string; actorId: string; key: string } } | { store: typeof RUNS; value: StoredRunBase };
+
+export interface ProjectUpdate {
+  plan?: ScenePlan;
+  /** Takes to add or replace, keyed by take key. */
+  putTakes?: Map<string, VoiceTake>;
+  actorId: string;
+  note: string;
+}
+
+const ALL_STORES = [MANIFESTS, BLOBS, REVISIONS, COMMANDS, RUNS];
+
+/**
+ * Apply a plan and/or take change as ONE new revision, under compare-and-swap,
+ * together with any `extras` (idempotency or run records) — all or nothing.
+ * Assets and the render cache are kept; history gets the new revision.
+ */
+export async function updateProject(
+  workspaceId: string,
+  projectId: string,
+  expectedRevision: number,
+  update: ProjectUpdate,
+  extras: ExtraRecord[] = [],
+): Promise<SaveResult> {
+  checkId('workspaceId', workspaceId);
+  checkId('projectId', projectId);
+  if (update.plan) {
+    const validation = validateScenePlan(update.plan);
+    if (!validation.ok) {
+      throw new ProjectStoreError('INVALID_PROJECT', `Scene plan is invalid: ${validation.errors.slice(0, 5).join('; ')}`, { errors: validation.errors });
+    }
+    if (update.plan.id !== projectId) throw new ProjectStoreError('INVALID_PROJECT', 'plan.id cannot change');
+  }
+  const collector = new BlobCollector();
+  const newTakes = update.putTakes ? await prepareTakes(update.putTakes, collector) : [];
+  const planHash = update.plan ? await hashScenePlan(update.plan) : null;
+  const savedAt = Date.now();
+
+  const db = await openProjectDB();
+  try {
+    const out = await new Promise<{ revision: number; planHash: string }>((resolve, reject) => {
+      const tx = db.transaction(ALL_STORES, 'readwrite');
+      let failure: ProjectStoreError | null = null;
+      let result = { revision: 0, planHash: '' };
+      const manifests = tx.objectStore(MANIFESTS);
+      const g = manifests.get([workspaceId, projectId]);
+      g.onsuccess = () => {
+        const m = g.result as ProjectManifestV1 | undefined;
+        if (!m) {
+          failure = new ProjectStoreError('NOT_FOUND', `No project '${projectId}' in workspace '${workspaceId}'`);
+          tx.abort();
+          return;
+        }
+        if (m.revision !== expectedRevision) {
+          failure = conflict(projectId, m.revision, expectedRevision);
+          tx.abort();
+          return;
+        }
+        if (m.takes.length + newTakes.length > PROJECT_LIMITS.maxTakes) {
+          failure = new ProjectStoreError('LIMIT_EXCEEDED', `Too many voice takes (limit ${PROJECT_LIMITS.maxTakes})`);
+          tx.abort();
+          return;
+        }
+        try {
+          collector.putAll(tx.objectStore(BLOBS), workspaceId);
+          const takeMap = new Map(m.takes.map((t) => [t.key, t]));
+          for (const t of newTakes) takeMap.set(t.key, t);
+          const next: ProjectManifestV1 = {
+            ...m,
+            revision: m.revision + 1,
+            planHash: planHash ?? m.planHash,
+            plan: update.plan ?? m.plan,
+            takes: [...takeMap.values()],
+            savedAt,
+          };
+          const history = tx.objectStore(REVISIONS);
+          // Record the previous revision's plan if history doesn't have it yet
+          // (the first update after a full save).
+          const prev = history.get([workspaceId, projectId, m.revision]);
+          prev.onsuccess = () => {
+            if (!prev.result) {
+              history.put({ workspaceId, projectId, revision: m.revision, planHash: m.planHash, plan: m.plan, savedAt: m.savedAt, actorId: 'unknown', note: 'saved project' } satisfies RevisionRecord);
+            }
+          };
+          history.put({ workspaceId, projectId, revision: next.revision, planHash: next.planHash, plan: next.plan, savedAt, actorId: update.actorId, note: update.note } satisfies RevisionRecord);
+          manifests.put(next);
+          for (const e of extras) tx.objectStore(e.store).put(e.value);
+          result = { revision: next.revision, planHash: next.planHash };
+        } catch (err) {
+          failure = new ProjectStoreError('STORAGE_FAILED', `Update failed: ${(err as Error).message}`);
+          tx.abort();
+        }
+      };
+      tx.oncomplete = () => resolve(result);
+      tx.onabort = () => reject(failure ?? new ProjectStoreError('STORAGE_FAILED', `Update aborted: ${tx.error?.message ?? 'unknown error'}`));
+    });
+    await collectGarbage(db, workspaceId).catch(() => {});
+    return { ...out, savedAt, bytesWritten: collector.bytes };
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Atomically read-modify-write one run record, optionally storing its MP4
+ * artifact bytes and a new render cache in the SAME transaction.
+ * `mutate` gets the current record (and the artifact ref when bytes were
+ * given) and returns the next record, or null to change nothing — e.g. when
+ * the run was cancelled meanwhile; then no bytes or cache are written either.
+ * The render cache (the basis for partial re-renders) is replaced by this
+ * render unless the stored cache already matches the project's CURRENT plan
+ * exactly and this one does not — a late-finishing older run never displaces
+ * an exact cache.
+ * Does not change the project revision.
+ */
+export async function updateRun<R extends StoredRunBase>(
+  workspaceId: string,
+  runId: string,
+  mutate: (current: R | undefined, artifact?: BlobRef) => R | null,
+  opts: { mp4?: Uint8Array; renderCache?: { renderedPlan: ScenePlan; result: CartoonRenderResult }; extras?: ExtraRecord[] } = {},
+): Promise<{ run: R | undefined; applied: boolean; cacheUpdated: boolean }> {
+  checkId('workspaceId', workspaceId);
+  const collector = new BlobCollector();
+  const artifact = opts.mp4 ? await collector.add(opts.mp4, 'run artifact') : undefined;
+  const cache = opts.renderCache ? await prepareRender(opts.renderCache, collector) : undefined;
+  const db = await openProjectDB();
+  try {
+    const out = await new Promise<{ run: R | undefined; applied: boolean; cacheUpdated: boolean }>((resolve, reject) => {
+      const tx = db.transaction(ALL_STORES, 'readwrite');
+      let state: { run: R | undefined; applied: boolean; cacheUpdated: boolean } = { run: undefined, applied: false, cacheUpdated: false };
+      let failure: Error | null = null;
+      const runs = tx.objectStore(RUNS);
+      const g = runs.get([workspaceId, runId]);
+      g.onsuccess = () => {
+        const current = g.result as R | undefined;
+        let next: R | null;
+        try {
+          next = mutate(current, artifact);
+        } catch (err) {
+          failure = err as Error;
+          tx.abort();
+          return;
+        }
+        if (!next) {
+          state = { run: current, applied: false, cacheUpdated: false };
+          return; // read-only transaction outcome; nothing written
+        }
+        if (next.workspaceId !== workspaceId || next.runId !== runId) {
+          failure = new ProjectStoreError('INVALID_PROJECT', 'run identity cannot change');
+          tx.abort();
+          return;
+        }
+        collector.putAll(tx.objectStore(BLOBS), workspaceId);
+        runs.put(next);
+        for (const e of opts.extras ?? []) tx.objectStore(e.store).put(e.value);
+        state = { run: next, applied: true, cacheUpdated: false };
+        if (cache) {
+          const manifests = tx.objectStore(MANIFESTS);
+          const mg = manifests.get([workspaceId, next.projectId]);
+          mg.onsuccess = () => {
+            const m = mg.result as ProjectManifestV1 | undefined;
+            const exactAlready = m?.lastRender?.renderedPlanHash === m?.planHash;
+            if (m && (m.planHash === cache.renderedPlanHash || !exactAlready)) {
+              manifests.put({ ...m, lastRender: cache });
+              state = { ...state, cacheUpdated: true };
+            }
+          };
+        }
+      };
+      tx.oncomplete = () => resolve(state);
+      tx.onabort = () => reject(failure ?? new ProjectStoreError('STORAGE_FAILED', `Run update failed: ${tx.error?.message ?? 'aborted'}`));
+    });
+    if (out.applied && (cache || artifact)) await collectGarbage(db, workspaceId).catch(() => {});
+    return out;
+  } finally {
+    db.close();
+  }
+}
+
+/** Read a project's manifest without loading or verifying blobs (cheap; for inspection). */
+export async function readManifest(workspaceId: string, projectId: string): Promise<ProjectManifestV1> {
+  checkId('workspaceId', workspaceId);
+  checkId('projectId', projectId);
+  const db = await openProjectDB();
+  try {
+    const m = await new Promise<ProjectManifestV1 | undefined>((resolve, reject) => {
+      const req = db.transaction(MANIFESTS, 'readonly').objectStore(MANIFESTS).get([workspaceId, projectId]);
+      req.onsuccess = () => resolve(req.result as ProjectManifestV1 | undefined);
+      req.onerror = () => reject(new ProjectStoreError('STORAGE_FAILED', `Read failed: ${req.error?.message}`));
+    });
+    if (!m) throw new ProjectStoreError('NOT_FOUND', `No project '${projectId}' in workspace '${workspaceId}'`);
+    if (m.formatVersion !== PROJECT_FORMAT_VERSION) {
+      throw new ProjectStoreError('UNSUPPORTED_FORMAT', `Stored project format v${String(m.formatVersion)} is not supported`);
+    }
+    return m;
+  } finally {
+    db.close();
+  }
+}
+
+/** Read one record by primary key from a store (scoped reads only). */
+export async function getRecord<T>(store: typeof COMMANDS | typeof RUNS | typeof REVISIONS, key: IDBValidKey): Promise<T | undefined> {
+  const db = await openProjectDB();
+  try {
+    return await new Promise<T | undefined>((resolve, reject) => {
+      const req = db.transaction(store, 'readonly').objectStore(store).get(key);
+      req.onsuccess = () => resolve(req.result as T | undefined);
+      req.onerror = () => reject(new ProjectStoreError('STORAGE_FAILED', `Read failed: ${req.error?.message}`));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+/** Write records that are not tied to a project revision (e.g. a cancel's idempotency record + run state). */
+export async function putRecords(records: ExtraRecord[]): Promise<void> {
+  const db = await openProjectDB();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction([COMMANDS, RUNS], 'readwrite');
+      for (const r of records) tx.objectStore(r.store).put(r.value);
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(new ProjectStoreError('STORAGE_FAILED', `Write failed: ${tx.error?.message ?? 'aborted'}`));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+/** All runs of a project (scoped by workspace). */
+export async function listRuns<T extends StoredRunBase>(workspaceId: string, projectId: string): Promise<T[]> {
+  const db = await openProjectDB();
+  try {
+    return await new Promise<T[]>((resolve, reject) => {
+      const req = db.transaction(RUNS, 'readonly').objectStore(RUNS).index('project').getAll(IDBKeyRange.only([workspaceId, projectId]));
+      req.onsuccess = () => resolve(req.result as T[]);
+      req.onerror = () => reject(new ProjectStoreError('STORAGE_FAILED', `List runs failed: ${req.error?.message}`));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+/** All runs in a workspace (for recovery and concurrency limits). */
+export async function listRunsInWorkspace<T extends StoredRunBase>(workspaceId: string): Promise<T[]> {
+  checkId('workspaceId', workspaceId);
+  const db = await openProjectDB();
+  try {
+    return await new Promise<T[]>((resolve, reject) => {
+      const req = db.transaction(RUNS, 'readonly').objectStore(RUNS).getAll(IDBKeyRange.bound([workspaceId, ''], [workspaceId, '\uffff']));
+      req.onsuccess = () => resolve(req.result as T[]);
+      req.onerror = () => reject(new ProjectStoreError('STORAGE_FAILED', `List runs failed: ${req.error?.message}`));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+/** Read a run's artifact bytes, re-verifying the hash. */
+export async function readArtifact(workspaceId: string, ref: BlobRef): Promise<Uint8Array> {
+  const db = await openProjectDB();
+  try {
+    const row = await new Promise<BlobRow | undefined>((resolve, reject) => {
+      const req = db.transaction(BLOBS, 'readonly').objectStore(BLOBS).get(blobKey(workspaceId, ref.sha256));
+      req.onsuccess = () => resolve(req.result as BlobRow | undefined);
+      req.onerror = () => reject(new ProjectStoreError('STORAGE_FAILED', `Read failed: ${req.error?.message}`));
+    });
+    if (!row) throw new ProjectStoreError('MISSING_ASSET', 'Artifact bytes are missing from storage', { sha256: ref.sha256 });
+    const bytes = new Uint8Array(row.bytes);
+    if (bytes.byteLength !== ref.size || (await sha256Hex(bytes)) !== ref.sha256) {
+      throw new ProjectStoreError('CORRUPT_ASSET', 'Artifact failed its integrity check', { sha256: ref.sha256 });
+    }
+    return bytes;
+  } finally {
+    db.close();
+  }
 }
 
 // ─── Load ────────────────────────────────────────────────────────────────────
@@ -485,7 +843,7 @@ function readManifestAndBlobs(
 export async function loadProject(workspaceId: string, projectId: string): Promise<LoadedProject> {
   checkId('workspaceId', workspaceId);
   checkId('projectId', projectId);
-  const db = await openDB();
+  const db = await openProjectDB();
   let read: Awaited<ReturnType<typeof readManifestAndBlobs>>;
   try {
     read = await readManifestAndBlobs(db, workspaceId, projectId);
@@ -592,7 +950,7 @@ async function restoreRender(
     if (off !== joined.byteLength) {
       throw new ProjectStoreError('CORRUPT_ASSET', `Render chunk index for '${s.sceneId}' does not match its bytes`);
     }
-    sceneRecords.push({ sceneId: s.sceneId, contentHash: s.contentHash, startFrame: s.startFrame, frameCount: s.frameCount, chunks, frameHashes: [] });
+    sceneRecords.push({ sceneId: s.sceneId, contentHash: s.contentHash, renderKey: s.renderKey ?? null, startFrame: s.startFrame, frameCount: s.frameCount, chunks, frameHashes: [] });
   }
   const description = r.decoderConfig.description ? (await verify(r.decoderConfig.description, 'Decoder description')).slice() : undefined;
   return {
@@ -609,6 +967,7 @@ async function restoreRender(
       audioPcmHash: r.audioPcmHash,
       timing: r.timing,
       decoderConfig: { ...r.decoderConfig, description },
+      settingsKey: r.settingsKey,
       sceneRecords,
     } as CartoonRenderResult,
   };
@@ -618,11 +977,11 @@ async function restoreRender(
 
 export async function listProjects(workspaceId: string): Promise<ProjectSummary[]> {
   checkId('workspaceId', workspaceId);
-  const db = await openDB();
+  const db = await openProjectDB();
   try {
     const rows = await new Promise<ProjectManifestV1[]>((resolve, reject) => {
       const tx = db.transaction(MANIFESTS, 'readonly');
-      const req = tx.objectStore(MANIFESTS).getAll(IDBKeyRange.bound([workspaceId, ''], [workspaceId, '￿']));
+      const req = tx.objectStore(MANIFESTS).getAll(IDBKeyRange.bound([workspaceId, ''], [workspaceId, '\uffff']));
       req.onsuccess = () => resolve(req.result as ProjectManifestV1[]);
       req.onerror = () => reject(new ProjectStoreError('STORAGE_FAILED', `List failed: ${req.error?.message}`));
     });
@@ -652,7 +1011,7 @@ const BUNDLE_MAGIC = new TextEncoder().encode('CCPROJ01');
  */
 export async function exportProjectBundle(workspaceId: string, projectId: string): Promise<Blob> {
   const project = await loadProject(workspaceId, projectId);
-  const db = await openDB();
+  const db = await openProjectDB();
   let manifest: ProjectManifestV1 | undefined;
   let blobs: Map<string, ArrayBuffer | undefined>;
   try {

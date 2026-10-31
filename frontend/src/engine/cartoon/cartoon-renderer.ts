@@ -16,13 +16,15 @@
  */
 
 import {
+  canonicalJson,
   diffScenePlans,
   hashScene,
   hashScenePlan,
+  sha256Hex,
   validateScenePlan,
   type ScenePlan,
 } from './scene-plan';
-import { computePlanTiming, type PlanTiming } from './timing';
+import { computePlanTiming, takeKeyForLine, type PlanTiming } from './timing';
 import { mixPlanAudio, type MixedAudio } from './audio-mixer';
 import { takeTimingInfo, type VoiceTake } from './voice-takes';
 import type { RenderFramesRequest, MuxRequest, WorkerChunk, WorkerDecoderConfig, WorkerResponse } from './render-worker';
@@ -46,11 +48,27 @@ export interface CartoonRenderOptions {
   onProgress?: (percent: number) => void;
   /** Override the worker script location (used by the determinism harness). */
   workerUrl?: string | URL;
+  /**
+   * SHA-256 of the ENCODED bytes of each supplied background asset, keyed by
+   * assetRef. Part of each scene's render identity: without a hash for a
+   * scene's background asset, that scene is never reused by a partial re-render.
+   */
+  assetHashes?: Map<string, string>;
+  /** Cancels the render: the worker is terminated and the promise rejects with an AbortError. */
+  signal?: AbortSignal;
 }
+
+/**
+ * Bump when the painter/compositor output changes for the same inputs, so
+ * render caches from an older renderer are never spliced into new output.
+ */
+export const CARTOON_RENDERER_ID = 'cartoon-renderer/1';
 
 export interface SceneRenderRecord {
   sceneId: string;
   contentHash: string;
+  /** Full render identity (see sceneRenderKey); null/absent ⇒ never reused. */
+  renderKey?: string | null;
   startFrame: number;
   frameCount: number;
   chunks: WorkerChunk[];
@@ -71,6 +89,8 @@ export interface CartoonRenderResult {
   audioPcmHash: string;
   timing: PlanTiming;
   decoderConfig: WorkerDecoderConfig;
+  /** renderSettingsKey() of this render; absent ⇒ cache never reused. */
+  settingsKey?: string;
   /** Per-scene encoded chunk groups — the partial re-render cache. */
   sceneRecords: SceneRenderRecord[];
   /** All frame hashes in order, when collected. */
@@ -91,6 +111,65 @@ export interface PartialRenderReport {
 
 const DEFAULT_BITRATE = 8_000_000;
 
+function abortError(): DOMException {
+  return new DOMException('Render cancelled', 'AbortError');
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw abortError();
+}
+
+// ─── Render identity (cache keys) ───────────────────────────────────────────
+
+/**
+ * Identity of everything global that affects every encoded frame: renderer
+ * version, fps, resolution and bitrate. Scene chunks are only reusable under
+ * an identical settings key.
+ */
+export function renderSettingsKey(plan: ScenePlan, options: Pick<CartoonRenderOptions, 'bitrate'>): Promise<string> {
+  return sha256Hex(
+    new TextEncoder().encode(
+      canonicalJson({
+        renderer: CARTOON_RENDERER_ID,
+        fps: plan.fps,
+        resolution: plan.resolution,
+        bitrate: options.bitrate ?? DEFAULT_BITRATE,
+      }),
+    ),
+  );
+}
+
+/**
+ * Identity of one scene's FRAMES: scene JSON + the PCM hash of every take its
+ * dialogue uses (takes drive mouth shapes even when duration is unchanged) +
+ * the byte hash of its background asset + the global settings key. Returns
+ * null when an input's identity is unknown, which forces a re-render.
+ */
+export async function sceneRenderKey(
+  plan: ScenePlan,
+  sceneIndex: number,
+  options: Pick<CartoonRenderOptions, 'takes' | 'assetHashes'>,
+  settingsKey: string,
+): Promise<string | null> {
+  const scene = plan.scenes[sceneIndex];
+  const takeHashes: string[] = [];
+  for (const line of scene.dialogue) {
+    const take = options.takes.get(takeKeyForLine(line));
+    if (!take?.pcmHash) return null;
+    takeHashes.push(take.pcmHash);
+  }
+  let backgroundAsset: string | null = null;
+  if (scene.background.assetRef) {
+    backgroundAsset = options.assetHashes?.get(scene.background.assetRef) ?? null;
+    if (!backgroundAsset) return null;
+  }
+  return sha256Hex(
+    new TextEncoder().encode(
+      canonicalJson({ settingsKey, scene: await hashScene(scene), takeHashes, backgroundAsset }),
+    ),
+  );
+}
+
 // ─── Worker plumbing ─────────────────────────────────────────────────────────
 
 interface WorkerHandle {
@@ -104,7 +183,7 @@ interface WorkerHandle {
   terminate(): void;
 }
 
-function createWorkerHandle(workerUrl?: string | URL): WorkerHandle {
+function createWorkerHandle(workerUrl?: string | URL, signal?: AbortSignal): WorkerHandle {
   // Bundler-visible URL keeps this compatible with the Next.js static export;
   // the engine itself is only ever loaded via dynamic import (Law L8).
   const worker = new Worker(workerUrl ?? new URL('./render-worker.ts', import.meta.url), { type: 'module' });
@@ -133,10 +212,21 @@ function createWorkerHandle(workerUrl?: string | URL): WorkerHandle {
           cleanup();
           reject(new Error(`Render worker crashed: ${err.message}`));
         };
+        const onAbort = () => {
+          cleanup();
+          worker.terminate();
+          reject(abortError());
+        };
         const cleanup = () => {
           worker.removeEventListener('message', onMessage);
           worker.removeEventListener('error', onError);
+          signal?.removeEventListener('abort', onAbort);
         };
+        if (signal?.aborted) {
+          reject(abortError());
+          return;
+        }
+        signal?.addEventListener('abort', onAbort);
         worker.addEventListener('message', onMessage);
         worker.addEventListener('error', onError);
         worker.postMessage(request, transfer ?? []);
@@ -160,6 +250,8 @@ async function splitIntoSceneRecords(
   timing: PlanTiming,
   chunks: WorkerChunk[],
   frameHashes: string[],
+  options: CartoonRenderOptions,
+  settingsKey: string,
 ): Promise<SceneRenderRecord[]> {
   const records: SceneRenderRecord[] = [];
   for (let i = 0; i < plan.scenes.length; i++) {
@@ -168,6 +260,7 @@ async function splitIntoSceneRecords(
     records.push({
       sceneId: window.sceneId,
       contentHash: await hashScene(plan.scenes[i]),
+      renderKey: await sceneRenderKey(plan, i, options, settingsKey),
       startFrame: window.startFrame,
       frameCount: window.frameCount,
       chunks: chunks.filter((c) => {
@@ -247,7 +340,9 @@ export async function renderCartoonProject(
   options: CartoonRenderOptions,
 ): Promise<CartoonRenderResult> {
   assertValid(plan);
+  throwIfAborted(options.signal);
   const planHash = await hashScenePlan(plan);
+  const settingsKey = await renderSettingsKey(plan, options);
   const takeDurations = new Map(Array.from(options.takes, ([k, t]) => [k, t.durationSec]));
   const timing = computePlanTiming(plan, takeDurations);
 
@@ -255,8 +350,9 @@ export async function renderCartoonProject(
   options.onProgress?.(2);
   const audio = await mixPlanAudio(plan, timing, options.takes, { audioAssets: options.audioAssets });
   options.onProgress?.(10);
+  throwIfAborted(options.signal);
 
-  const handle = createWorkerHandle(options.workerUrl);
+  const handle = createWorkerHandle(options.workerUrl, options.signal);
   try {
     options.onPhaseChange?.('compositing', 'Rendering frames...');
     const framesDone = await handle.call(
@@ -266,7 +362,7 @@ export async function renderCartoonProject(
     );
 
     options.onPhaseChange?.('muxing', 'Muxing MP4...');
-    const records = await splitIntoSceneRecords(plan, timing, framesDone.chunks, framesDone.frameHashes);
+    const records = await splitIntoSceneRecords(plan, timing, framesDone.chunks, framesDone.frameHashes, options, settingsKey);
     const { mp4, audioCodec } = await muxRecords(
       handle, plan, planHash, records, framesDone.decoderConfig, audio,
       (pct) => options.onProgress?.(85 + Math.round(pct * 0.15)),
@@ -285,6 +381,7 @@ export async function renderCartoonProject(
       audioPcmHash: audio.pcmHash,
       timing,
       decoderConfig: framesDone.decoderConfig,
+      settingsKey,
       sceneRecords: records,
       frameHashes: options.collectFrameHashes ? framesDone.frameHashes : undefined,
     };
@@ -328,7 +425,9 @@ export async function rerenderEditedProject(
   options: CartoonRenderOptions,
 ): Promise<{ result: CartoonRenderResult; partial: PartialRenderReport }> {
   assertValid(newPlan);
+  throwIfAborted(options.signal);
   const diff = await diffScenePlans(prevPlan, newPlan);
+  const settingsKey = await renderSettingsKey(newPlan, options);
   const takeDurations = new Map(Array.from(options.takes, ([k, t]) => [k, t.durationSec]));
   const newTiming = computePlanTiming(newPlan, takeDurations);
 
@@ -347,22 +446,38 @@ export async function rerenderEditedProject(
   };
 
   if (diff.structureChanged) return fullRender('scene structure changed (add/remove/reorder)');
+  if (prevResult.settingsKey !== settingsKey) {
+    return fullRender('render settings changed (renderer, fps, resolution or bitrate) — cached chunks are incompatible');
+  }
   if (!windowsMatch(prevResult.timing, newTiming)) {
     return fullRender('scene frame windows shifted (dialogue/duration edit changed timing)');
   }
-  if (diff.changedSceneIds.length === 0) {
+  // A scene is reusable only if its full render identity (scene JSON, take
+  // PCM, background bytes, settings) is unchanged — not just its JSON.
+  const newKeys: Array<string | null> = [];
+  for (let i = 0; i < newPlan.scenes.length; i++) newKeys.push(await sceneRenderKey(newPlan, i, options, settingsKey));
+  const changed = new Set(diff.changedSceneIds);
+  for (let i = 0; i < newPlan.scenes.length; i++) {
+    const prevKey = prevResult.sceneRecords[i]?.renderKey;
+    if (newKeys[i] === null || !prevKey || prevKey !== newKeys[i]) changed.add(newPlan.scenes[i].id);
+  }
+  if (changed.size === 0) {
     return fullRender('no scene content changed — nothing to splice, re-rendered for coherence');
+  }
+  if (changed.size === newPlan.scenes.length) {
+    return fullRender('every scene changed or has an unverifiable render identity');
   }
 
   const planHash = await hashScenePlan(newPlan);
-  const changed = new Set(diff.changedSceneIds);
+  const rerenderedScenes = newPlan.scenes.map((s) => s.id).filter((id) => changed.has(id));
 
   options.onPhaseChange?.('audio-mix', 'Re-mixing audio (offline render)...');
   options.onProgress?.(2);
   const audio = await mixPlanAudio(newPlan, newTiming, options.takes, { audioAssets: options.audioAssets });
   options.onProgress?.(10);
 
-  const handle = createWorkerHandle(options.workerUrl);
+  throwIfAborted(options.signal);
+  const handle = createWorkerHandle(options.workerUrl, options.signal);
   try {
     const records: SceneRenderRecord[] = [];
     const rerenderedFrameRanges: Array<[number, number]> = [];
@@ -405,6 +520,7 @@ export async function rerenderEditedProject(
       records.push({
         sceneId: window.sceneId,
         contentHash: await hashScene(newPlan.scenes[i]),
+        renderKey: newKeys[i],
         startFrame: window.startFrame,
         frameCount: window.frameCount,
         chunks: framesDone.chunks,
@@ -436,12 +552,13 @@ export async function rerenderEditedProject(
         audioPcmHash: audio.pcmHash,
         timing: newTiming,
         decoderConfig,
+        settingsKey,
         sceneRecords: records,
         frameHashes,
       },
       partial: {
         mode: 'partial',
-        rerenderedScenes: diff.changedSceneIds,
+        rerenderedScenes,
         rerenderedFrameRanges,
         reusedScenes: newPlan.scenes.map((s) => s.id).filter((id) => !changed.has(id)),
       },
