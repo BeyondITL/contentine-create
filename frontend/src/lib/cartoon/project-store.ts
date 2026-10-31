@@ -773,6 +773,49 @@ export async function listRuns<T extends StoredRunBase>(workspaceId: string, pro
   }
 }
 
+/**
+ * Create a run exactly once, atomically: in ONE transaction, return the
+ * existing idempotency record if the key was already used; otherwise refuse
+ * when `maxActive` runs are active in the workspace; otherwise insert the run
+ * and its idempotency record together. Concurrent duplicate deliveries
+ * therefore yield one run.
+ */
+export async function insertRunOnce<R extends StoredRunBase, C extends { workspaceId: string; actorId: string; key: string }>(
+  command: C,
+  run: R,
+  isActive: (r: R) => boolean,
+  maxActive: number,
+): Promise<{ status: 'created' } | { status: 'duplicate'; existing: C } | { status: 'busy'; active: R }> {
+  const db = await openProjectDB();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction([COMMANDS, RUNS], 'readwrite');
+      let out: { status: 'created' } | { status: 'duplicate'; existing: C } | { status: 'busy'; active: R } = { status: 'created' };
+      const g = tx.objectStore(COMMANDS).get([command.workspaceId, command.actorId, command.key]);
+      g.onsuccess = () => {
+        if (g.result) {
+          out = { status: 'duplicate', existing: g.result as C };
+          return;
+        }
+        const all = tx.objectStore(RUNS).getAll(IDBKeyRange.bound([run.workspaceId, ''], [run.workspaceId, '\uffff']));
+        all.onsuccess = () => {
+          const active = (all.result as R[]).filter(isActive);
+          if (active.length >= maxActive) {
+            out = { status: 'busy', active: active[0] };
+            return;
+          }
+          tx.objectStore(RUNS).put(run);
+          tx.objectStore(COMMANDS).put(command);
+        };
+      };
+      tx.oncomplete = () => resolve(out);
+      tx.onabort = () => reject(new ProjectStoreError('STORAGE_FAILED', `Run creation failed: ${tx.error?.message ?? 'aborted'}`));
+    });
+  } finally {
+    db.close();
+  }
+}
+
 /** All runs in a workspace (for recovery and concurrency limits). */
 export async function listRunsInWorkspace<T extends StoredRunBase>(workspaceId: string): Promise<T[]> {
   checkId('workspaceId', workspaceId);

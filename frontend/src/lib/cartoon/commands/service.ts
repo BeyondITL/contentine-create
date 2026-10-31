@@ -34,6 +34,7 @@ import {
   RUNS,
   ProjectStoreError,
   getRecord,
+  insertRunOnce,
   listRuns,
   listRunsInWorkspace,
   loadProject,
@@ -608,10 +609,6 @@ export class CartoonCommandService {
     if (timing.totalDuration > this.limits.maxVideoSeconds) {
       throw new CommandError('LIMIT_EXCEEDED', `video would be ${timing.totalDuration.toFixed(1)}s (limit ${this.limits.maxVideoSeconds}s)`);
     }
-    const active = (await listRunsInWorkspace<RunRecord>(ctx.workspaceId)).filter((r) => !TERMINAL.has(r.state));
-    if (active.length >= this.limits.maxConcurrentRunsPerWorkspace) {
-      throw new CommandError('BUSY', `run ${active[0].runId} is still ${active[0].state}; cancel it or wait`, { runId: active[0].runId });
-    }
 
     // Snapshot the input revision NOW (verified bytes); the run is bound to it.
     let project: LoadedProject;
@@ -651,10 +648,23 @@ export class CartoonCommandService {
       settings: run.settings,
       expectedDurationSec: Number(timing.totalDuration.toFixed(3)),
     };
-    await putRecords([
-      { store: RUNS, value: run },
-      { store: COMMANDS, value: this.commandRecord(ctx, 'render_start', key, projectId, hash, ack) },
-    ]);
+    const created = await insertRunOnce(
+      this.commandRecord(ctx, 'render_start', key, projectId, hash, ack),
+      run,
+      (r) => !TERMINAL.has((r as RunRecord).state),
+      this.limits.maxConcurrentRunsPerWorkspace,
+    );
+    if (created.status === 'duplicate') {
+      const rec = created.existing;
+      if (rec.op !== 'render_start' || rec.payloadHash !== hash) {
+        throw new CommandError('IDEMPOTENCY_KEY_REUSED', `idempotencyKey '${key}' was already used for a different request`, { op: rec.op });
+      }
+      return { ...(rec.outcome as RenderAck), replayed: true };
+    }
+    if (created.status === 'busy') {
+      const a = created.active as RunRecord;
+      throw new CommandError('BUSY', `run ${a.runId} is still ${a.state}; cancel it or wait`, { runId: a.runId });
+    }
     const assetHashes = new Map(m.backgroundImages.map((x) => [x.ref, x.data.sha256]));
     void this.execute(run, project, assetHashes, timing.totalDuration);
     return ack;

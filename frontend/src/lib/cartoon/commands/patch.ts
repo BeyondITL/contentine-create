@@ -109,6 +109,9 @@ export function applyScenePatch(plan: ScenePlan, ops: unknown): ScenePlan {
     if (!op || typeof op !== 'object' || !['replace', 'add', 'remove', 'test'].includes(op.op as string)) {
       throw new CommandError('INVALID_PATCH', `op ${opIndex}: op must be replace, add, remove or test`, { opIndex });
     }
+    for (const k of Object.keys(op)) {
+      if (k !== 'op' && k !== 'path' && k !== 'value') throw new CommandError('INVALID_PATCH', `op ${opIndex}: unknown field '${k}'`, { opIndex });
+    }
     const tokens = parsePointer(op.path, opIndex);
     const needsValue = op.op !== 'remove';
     if (needsValue) {

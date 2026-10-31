@@ -58,6 +58,16 @@ describe('scene patches', () => {
     expect(code(() => applyScenePatch(plan, [{ op: 'test', path: '/title', value: 'wrong' }]))).toBe('INVALID_PATCH');
   });
 
+  it('rejects unknown fields and non-finite numbers', () => {
+    expect(code(() => applyScenePatch(plan, [{ op: 'replace', path: '/title', value: 'x', from: '/id' } as never]))).toBe('INVALID_PATCH');
+    for (const bad of [NaN, Infinity, -Infinity]) {
+      expect(code(() => applyScenePatch(plan, [{ op: 'replace', path: '/scenes/@scene-duo/characters/@dash/position/x', value: bad }]))).toBe('INVALID_PATCH');
+    }
+    expect(code(() => applyScenePatch(plan, [{ op: 'replace', path: '/scenes/@scene-duo/characters/@dash/scale', value: '2' }]))).toBe('INVALID_PATCH');
+    expect(code(() => applyScenePatch(plan, 'not-an-array'))).toBe('INVALID_PATCH');
+    expect(code(() => applyScenePatch(plan, [null]))).toBe('INVALID_PATCH');
+  });
+
   it('enforces bounds', () => {
     const many = Array.from({ length: PATCH_LIMITS.maxOps + 1 }, () => ({ op: 'replace', path: '/title', value: 't' }));
     expect(code(() => applyScenePatch(plan, many))).toBe('LIMIT_EXCEEDED');

@@ -265,6 +265,23 @@ describe('runs', () => {
     expect((await readManifest(WS, PID)).lastRender).toBeUndefined();
   });
 
+  it('concurrent duplicate deliveries create ONE run / ONE revision (A08)', async () => {
+    renderer.holdNext();
+    const args = { projectId: PID, expectedRevision: 1, idempotencyKey: 'render-dup-01' };
+    const [a, b] = await Promise.all([svc.renderStart(owner, args), svc.renderStart(owner, args)]);
+    expect(a.runId).toBe(b.runId);
+    expect([a.replayed, b.replayed].filter(Boolean)).toHaveLength(1);
+    renderer.release();
+    await svc.settled(a.runId);
+    expect(renderer.renders).toHaveLength(1);
+
+    const patch = { projectId: PID, expectedRevision: 1, ops: moveB(0.45), idempotencyKey: 'apply-dup-01' };
+    const [p1, p2] = await Promise.all([svc.applyPatch(owner, patch), svc.applyPatch(owner, patch)]);
+    expect(p1.revision).toBe(2);
+    expect(p2.revision).toBe(2);
+    expect((await readManifest(WS, PID)).revision).toBe(2);
+  });
+
   it('a disconnected renderer cannot produce success', async () => {
     renderer.ok = false;
     const ack = await svc.renderStart(owner, { projectId: PID, expectedRevision: 1, idempotencyKey: 'render-0005' });
