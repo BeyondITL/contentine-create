@@ -1082,6 +1082,22 @@ export async function exportProjectBundle(workspaceId: string, projectId: string
 }
 
 /**
+ * Import a plain ScenePlan JSON document as a NEW project (no voice takes or
+ * render yet — opening it voices and renders). Validated like any save; an
+ * existing project with the same id is a REVISION_CONFLICT, not an overwrite.
+ */
+export async function importScenePlan(json: string, workspaceId: string): Promise<SaveResult> {
+  if (json.length > 2 * 1024 * 1024) throw new ProjectStoreError('LIMIT_EXCEEDED', 'Scene plan file is larger than 2 MiB');
+  let plan: ScenePlan;
+  try {
+    plan = JSON.parse(json) as ScenePlan;
+  } catch {
+    throw new ProjectStoreError('INVALID_PROJECT', 'Not a JSON scene plan');
+  }
+  return saveProject({ workspaceId, plan, takes: new Map() }, { expectedRevision: null });
+}
+
+/**
  * Import a bundle into `workspaceId`. Every blob is hash-verified before
  * anything is written; the project is created (expectedRevision null), so an
  * existing project with the same id is a REVISION_CONFLICT, not an overwrite.

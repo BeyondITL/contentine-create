@@ -18,6 +18,7 @@ export default function SavedCartoonProjects() {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -39,8 +40,28 @@ export default function SavedCartoonProjects() {
     setError(null);
     try {
       const [store, ports] = await Promise.all([import('@/lib/cartoon/project-store'), import('@/lib/cartoon/commands/browser-ports')]);
-      const p = await store.loadProject(ports.LOCAL_WORKSPACE, projectId);
-      if (!p.lastRender) throw new Error('This project has no saved render yet.');
+      let p = await store.loadProject(ports.LOCAL_WORKSPACE, projectId);
+      if (!p.lastRender) {
+        // Never rendered, or its render cache was cleared: voice what's missing
+        // and render through the same commands the editor and assistants use.
+        const svc = ports.getCartoonCommands();
+        const ctx = ports.localOwnerContext();
+        const key = () => `open-${crypto.randomUUID()}`;
+        setProgress('Voicing lines…');
+        const voiced = await svc.voiceSynthesize(ctx, { projectId, expectedRevision: p.revision, idempotencyKey: key() });
+        setProgress('Rendering…');
+        const ack = await svc.renderStart(ctx, { projectId, expectedRevision: voiced.revision, idempotencyKey: key(), mode: 'full' });
+        let run = await svc.runInspect(ctx, { runId: ack.runId });
+        while (!run.terminal) {
+          setProgress(`Rendering… ${run.progress}%`);
+          await new Promise((r) => setTimeout(r, 400));
+          run = await svc.runInspect(ctx, { runId: ack.runId });
+        }
+        if (run.state !== 'succeeded') throw new Error(`Render ${run.state}: ${run.failure?.message ?? 'unknown reason'}`);
+        p = await store.loadProject(ports.LOCAL_WORKSPACE, projectId);
+        if (!p.lastRender) throw new Error('The render finished but was not saved.');
+        await refresh();
+      }
       for (const w of p.warnings) toast({ variant: 'info', title: 'Opened with a note', description: w });
       openEditor({
         plan: p.lastRender.renderedPlan,
@@ -60,6 +81,7 @@ export default function SavedCartoonProjects() {
       );
     } finally {
       setBusyId(null);
+      setProgress(null);
     }
   };
 
@@ -88,7 +110,8 @@ export default function SavedCartoonProjects() {
     setError(null);
     try {
       const [store, ports] = await Promise.all([import('@/lib/cartoon/project-store'), import('@/lib/cartoon/commands/browser-ports')]);
-      await store.importProjectBundle(file, ports.LOCAL_WORKSPACE);
+      if (file.name.toLowerCase().endsWith('.json')) await store.importScenePlan(await file.text(), ports.LOCAL_WORKSPACE);
+      else await store.importProjectBundle(file, ports.LOCAL_WORKSPACE);
       toast({ variant: 'success', title: 'Project restored', description: file.name });
       await refresh();
     } catch (err) {
@@ -115,12 +138,12 @@ export default function SavedCartoonProjects() {
           disabled={busyId !== null}
           className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] md:min-h-0 text-xs font-medium text-muted hover:text-text dark:hover:text-white transition-colors disabled:opacity-40"
         >
-          {busyId === 'import' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Restore backup
+          {busyId === 'import' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Open file
         </button>
         <input
           ref={fileRef}
           type="file"
-          accept=".ccproj,application/x-contentine-project"
+          accept=".ccproj,.json,application/x-contentine-project,application/json"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
@@ -136,6 +159,12 @@ export default function SavedCartoonProjects() {
         </div>
       )}
 
+      {progress && (
+        <p className="text-xs text-muted inline-flex items-center gap-1.5">
+          <Loader2 size={12} className="animate-spin" /> {progress}
+        </p>
+      )}
+
       {projects.length === 0 ? (
         <p className="text-xs text-muted">No saved cartoons yet — your first render is saved here automatically.</p>
       ) : (
@@ -146,7 +175,7 @@ export default function SavedCartoonProjects() {
                 <p className="text-sm text-text dark:text-white truncate">{p.title}</p>
                 <p className="text-[11px] text-muted">
                   Revision {p.revision} · {new Date(p.savedAt).toLocaleString()}
-                  {p.hasRender ? '' : ' · not rendered'}
+                  {p.hasRender ? '' : ' · renders when opened'}
                 </p>
               </div>
               <button
@@ -161,7 +190,7 @@ export default function SavedCartoonProjects() {
               <button
                 type="button"
                 onClick={() => void open(p.projectId)}
-                disabled={busyId !== null || !p.hasRender}
+                disabled={busyId !== null}
                 className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] md:min-h-0 bg-[#0A0A0A] dark:bg-white text-white dark:text-[#0A0A0A] rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-40"
               >
                 {busyId === p.projectId ? <Loader2 size={13} className="animate-spin" /> : <FolderOpen size={13} />} Open

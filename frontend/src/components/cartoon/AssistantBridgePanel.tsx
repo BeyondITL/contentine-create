@@ -95,7 +95,7 @@ export default function AssistantBridgePanel({ projectId, disabled }: { projectI
         <>
           <p className="text-[11px] text-muted">
             Your assistant can work on this project only: {status.binding.permissions.filter((p) => p !== 'read').join(', ') || 'read'}. Its edits
-            create new revisions you can review and undo from history.
+            become new saved revisions; load them here, and restore an earlier version from Version history if you don&rsquo;t want them.
           </p>
           <button
             type="button"

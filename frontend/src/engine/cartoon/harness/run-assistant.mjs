@@ -163,8 +163,8 @@ async function main() {
     await page.goto(`http://127.0.0.1:${APP_PORT}/cartoon/`, { waitUntil: 'networkidle' });
     await page.getByText('Saved on this device').waitFor({ timeout: 30_000 });
     await page.locator('input[type=file][accept*="ccproj"]').setInputFiles(BUNDLE);
-    await page.getByRole('button', { name: /Open/ }).first().waitFor({ timeout: 30_000 });
-    await page.getByRole('button', { name: /Open/ }).first().click();
+    await page.getByRole('button', { name: 'Open', exact: true }).first().waitFor({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Open', exact: true }).first().click();
     await page.getByText('· Timeline').waitFor({ timeout: 30_000 });
     await shot('1-editor-opened');
     report.steps.opened = await readProjectFromPage(page);

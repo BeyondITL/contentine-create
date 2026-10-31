@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "id": "c-m1-reference",
+  "title": "Dot & Dash Explain Determinism",
+  "fps": 30,
+  "resolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "scenes": [
+    {
+      "id": "scene-intro",
+      "background": {
+        "prompt": "flat cartoon meadow at sunrise, rolling hills",
+        "seed": 41
+      },
+      "characters": [
+        {
+          "rigId": "tracer-stick",
+          "instanceId": "dot",
+          "position": {
+            "x": 0.32,
+            "y": 0.86
+          },
+          "scale": 1,
+          "facing": "right",
+          "gestures": [
+            {
+              "name": "wave",
+              "at": 1.2
+            },
+            {
+              "name": "nod",
+              "at": 6
+            }
+          ],
+          "entrance": {
+            "type": "walk-in",
+            "from": "left",
+            "duration": 1.6
+          }
+        }
+      ],
+      "dialogue": [
+        {
+          "id": "intro-1",
+          "charId": "dot",
+          "text": "Hi there! I am Dot, and this cartoon renders right in your browser.",
+          "voiceProfileRef": "kokoro:af_sky@1.0"
+        },
+        {
+          "id": "intro-2",
+          "charId": "dot",
+          "text": "No servers, no queue. Just a plan, a timeline, and your machine.",
+          "voiceProfileRef": "kokoro:af_sky@1.0"
+        }
+      ],
+      "captions": {
+        "enabled": true,
+        "style": "bottom-bar"
+      },
+      "sfx": [
+        {
+          "assetRef": "proc:pop",
+          "at": 1.7,
+          "gain": 0.7
+        }
+      ],
+      "musicCue": {
+        "assetRef": "proc:warm-pad",
+        "gain": 0.32,
+        "duckTo": 0.1
+      },
+      "durationHints": {
+        "holdAfterDialogue": 0.9
+      }
+    },
+    {
+      "id": "scene-duo",
+      "background": {
+        "prompt": "flat cartoon hilltop at dusk, two moons",
+        "seed": 137
+      },
+      "characters": [
+        {
+          "rigId": "tracer-stick",
+          "instanceId": "dot",
+          "position": {
+            "x": 0.28,
+            "y": 0.86
+          },
+          "scale": 1,
+          "facing": "right",
+          "gestures": [
+            {
+              "name": "point",
+              "at": 4.6
+            }
+          ]
+        },
+        {
+          "rigId": "tracer-stick",
+          "instanceId": "dash",
+          "position": {
+            "x": 0.7,
+            "y": 0.86
+          },
+          "scale": 0.92,
+          "facing": "left",
+          "palette": {
+            "body": "#35C838",
+            "accent": "#00C3FF"
+          },
+          "gestures": [
+            {
+              "name": "jump",
+              "at": 1
+            },
+            {
+              "name": "shrug",
+              "at": 5.8
+            }
+          ],
+          "entrance": {
+            "type": "pop-in",
+            "duration": 0.6
+          }
+        }
+      ],
+      "dialogue": [
+        {
+          "id": "duo-1",
+          "charId": "dash",
+          "text": "I am Dash! Every mouth shape is keyed to the voice track.",
+          "voiceProfileRef": "kokoro:am_adam@1.0"
+        },
+        {
+          "id": "duo-2",
+          "charId": "dot",
+          "text": "Render it twice, you get the same frames. Pixel for pixel.",
+          "voiceProfileRef": "kokoro:af_sky@1.0"
+        },
+        {
+          "id": "duo-3",
+          "charId": "dash",
+          "text": "That is determinism. The video is a print out of the plan.",
+          "voiceProfileRef": "kokoro:am_adam@1.0"
+        }
+      ],
+      "captions": {
+        "enabled": true,
+        "style": "bottom-bar"
+      },
+      "sfx": [
+        {
+          "assetRef": "proc:whoosh",
+          "at": 0.5,
+          "gain": 0.6
+        }
+      ],
+      "musicCue": {
+        "assetRef": "proc:uplift-pad",
+        "gain": 0.3,
+        "duckTo": 0.1
+      },
+      "durationHints": {
+        "holdAfterDialogue": 0.9
+      }
+    },
+    {
+      "id": "scene-outro",
+      "background": {
+        "prompt": "flat cartoon night sky, city silhouette",
+        "seed": 900
+      },
+      "characters": [
+        {
+          "rigId": "tracer-stick",
+          "instanceId": "dot",
+          "position": {
+            "x": 0.5,
+            "y": 0.86
+          },
+          "scale": 1.05,
+          "facing": "right",
+          "gestures": [
+            {
+              "name": "nod",
+              "at": 3.4
+            },
+            {
+              "name": "wave",
+              "at": 4.8
+            }
+          ],
+          "entrance": {
+            "type": "fade-in",
+            "duration": 0.8
+          },
+          "exit": {
+            "type": "walk-out",
+            "to": "right",
+            "duration": 1.4
+          }
+        }
+      ],
+      "dialogue": [
+        {
+          "id": "outro-1",
+          "charId": "dot",
+          "text": "Change one color or pose, and only that scene re-renders. See you in the editor!",
+          "voiceProfileRef": "kokoro:af_sky@1.0"
+        }
+      ],
+      "captions": {
+        "enabled": true,
+        "style": "bottom-bar"
+      },
+      "sfx": [
+        {
+          "assetRef": "proc:ding",
+          "at": 0.4,
+          "gain": 0.6
+        }
+      ],
+      "musicCue": {
+        "assetRef": "proc:warm-pad",
+        "gain": 0.3,
+        "duckTo": 0.1
+      },
+      "durationHints": {
+        "holdAfterDialogue": 0.6
+      }
+    }
+  ]
+}

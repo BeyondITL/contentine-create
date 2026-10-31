@@ -125,6 +125,23 @@ export default function CartoonTimelineEditor() {
     if (session?.plan.id) void loadHistory(session.plan.id);
   }, [session?.plan.id, loadHistory]);
 
+  // Make the state you opened restorable from Version history (a reopened or
+  // restored project has no editor snapshots yet), so later edits — yours or
+  // an assistant's — can be undone by restoring it.
+  const openedSnapshotDone = useRef(false);
+  useEffect(() => {
+    const engine = engineRef.current;
+    const plan = session?.project?.plan ?? session?.plan;
+    if (!engine || !plan || historyLoading || openedSnapshotDone.current) return;
+    openedSnapshotDone.current = true;
+    void (async () => {
+      const hash = await engine.hashScenePlan(plan);
+      if (history.some((h) => h.planHash === hash)) return;
+      const rev = session?.project?.revision;
+      await pushSnapshot({ projectId: plan.id, planHash: hash, label: rev ? `Opened revision ${rev}` : 'Opened', plan: clonePlan(plan) });
+    })();
+  }, [engineReady, historyLoading, history, session, pushSnapshot]);
+
   // Recompile the preview whenever the plan or takes change. Compilation is a
   // pure sync engine call once loaded — same compiler the export worker uses.
   const recompile = useCallback(() => {
@@ -404,11 +421,12 @@ export default function CartoonTimelineEditor() {
         bgAssets: bgAssetsRef.current,
         project: projectRef.current,
       });
-      toast({ variant: 'info', title: `Loaded revision ${loaded.revision}`, description: 'You are editing the latest saved version.' });
+      await pushSnapshot({ projectId: loaded.projectId, planHash: loaded.planHash, label: `Loaded revision ${loaded.revision}`, plan: clonePlan(loaded.plan) });
+      toast({ variant: 'info', title: `Loaded revision ${loaded.revision}`, description: 'You are editing the latest saved version. Earlier versions stay in Version history.' });
     } catch (err) {
       setRerollError(err instanceof Error ? err.message : 'Could not load the saved project.');
     }
-  }, [workingPlan, updateSession, toast]);
+  }, [workingPlan, updateSession, toast, pushSnapshot]);
 
   // An assistant changed this project through the bridge → offer the latest revision.
   useEffect(() => {

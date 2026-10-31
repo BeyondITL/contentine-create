@@ -346,3 +346,23 @@ describe('project-store v1', () => {
     await expectCode(loadProject('ws-tamper', input.plan.id), 'NOT_FOUND');
   });
 });
+
+describe('versioned sample', () => {
+  it('samples/cartoon/dot-and-dash.plan.json is the reference plan and imports as a new project', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const { canonicalJson, validateScenePlan } = await import('@/engine/cartoon/scene-plan');
+    const { importScenePlan } = await import('./project-store');
+    const json = fs.readFileSync(path.resolve(__dirname, '../../../../samples/cartoon/dot-and-dash.plan.json'), 'utf8');
+    expect(canonicalJson(JSON.parse(json))).toBe(canonicalJson(buildReferencePlan()));
+    expect(validateScenePlan(JSON.parse(json)).ok).toBe(true);
+    const saved = await importScenePlan(json, WS);
+    expect(saved.revision).toBe(1);
+    const loaded = await loadProject(WS, 'c-m1-reference');
+    expect(loaded.takes.size).toBe(0);
+    expect(loaded.lastRender).toBeUndefined();
+    await expectCode(importScenePlan(json, WS), 'REVISION_CONFLICT');
+    await expectCode(importScenePlan('{"version":1}', WS), 'INVALID_PROJECT');
+    await expectCode(importScenePlan('not json', WS), 'INVALID_PROJECT');
+  });
+});

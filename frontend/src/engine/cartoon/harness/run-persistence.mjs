@@ -16,127 +16,26 @@
  * Exit 0 = gate green.
  */
 
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import http from 'node:http';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+import {
+  REPO_ROOT, buildPage, serve, session as launch, logger, freshProfile,
+  ffprobe, decodedFrameMd5s, decodedAudioMd5, sha256File, structural, countDiff as diffCount,
+} from './harness-runtime.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, '../../../../..');
-const FRONTEND = path.join(REPO_ROOT, 'frontend');
-const PUBLIC_DIR = path.join(FRONTEND, 'public');
 const ARTIFACTS = path.join(REPO_ROOT, 'artifacts', 'persistence');
-const BUILD_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'persist-harness-'));
+const log = logger('persist-harness');
 
-const require = createRequire(path.join(FRONTEND, 'package.json'));
-const esbuild = require('esbuild');
-const { chromium } = require('@playwright/test');
-
-const MIME = {
-  '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
-  '.wasm': 'application/wasm', '.json': 'application/json', '.map': 'application/json',
-};
-
-const log = (msg) => process.stdout.write(`[persist-harness] ${msg}\n`);
-
-async function build() {
-  await esbuild.build({
-    entryPoints: [path.join(__dirname, 'persistence-page.ts'), path.join(__dirname, '../render-worker.ts')],
-    bundle: true,
-    format: 'esm',
-    splitting: true,
-    outdir: BUILD_DIR,
-    outbase: path.join(__dirname, '..'),
-    absWorkingDir: FRONTEND,
-    logLevel: 'warning',
-    target: 'es2022',
-  });
-  fs.writeFileSync(
-    path.join(BUILD_DIR, 'index.html'),
-    '<!doctype html><html><head><meta charset="utf-8"><title>persistence harness</title></head>' +
-      '<body><script type="module" src="/harness/persistence-page.js"></script></body></html>',
-  );
-}
-
-function serve() {
-  const server = http.createServer((req, res) => {
-    const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
-    if (req.method === 'PUT' && pathname.startsWith('/artifact/')) {
-      const out = fs.createWriteStream(path.join(ARTIFACTS, path.basename(pathname)));
-      req.pipe(out);
-      out.on('finish', () => { res.writeHead(200); res.end('ok'); });
-      out.on('error', (err) => { res.writeHead(500); res.end(String(err)); });
-      return;
-    }
-    const rel = pathname === '/' ? '/index.html' : pathname;
-    for (const root of [BUILD_DIR, PUBLIC_DIR]) {
-      const file = path.join(root, rel);
-      if (!file.startsWith(root)) continue;
-      if (fs.existsSync(file) && fs.statSync(file).isFile()) {
-        res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] ?? 'application/octet-stream' });
-        fs.createReadStream(file).pipe(res);
-        return;
-      }
-    }
-    res.writeHead(404);
-    res.end('not found');
-  });
-  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve({ server, port: server.address().port })));
-}
-
-async function session(profileDir, port, label, fn) {
-  let context;
-  try {
-    context = await chromium.launchPersistentContext(profileDir, { channel: 'chrome', headless: true });
-  } catch (err) {
-    log(`chrome channel unavailable (${err.message?.split('\n')[0]}); using bundled chromium`);
-    context = await chromium.launchPersistentContext(profileDir, { headless: true });
-  }
-  const page = await context.newPage();
-  page.on('console', (m) => { const t = m.text(); if (t.startsWith('[persist]') || m.type() === 'error') log(`${label}: ${t}`); });
-  page.on('pageerror', (e) => log(`${label} pageerror: ${e.message}`));
-  try {
-    await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load' });
-    await page.waitForFunction(() => Boolean(window.__persist), null, { timeout: 30_000 });
-    return await fn(page);
-  } finally {
-    await context.close(); // persistent context: this quits the Chrome process
-    log(`${label}: browser closed`);
-  }
-}
-
-/** ffprobe output minus fields that vary with encoded bytes (filename, bit_rate, size). */
-const structural = (text) => text.split('\n').filter((l) => !/^(filename|bit_rate|size)=/.test(l)).join('\n');
-
-const sha256File = (f) => createHash('sha256').update(fs.readFileSync(f)).digest('hex');
-
-function ffprobe(file) {
-  return execFileSync('ffprobe', ['-v', 'error', '-show_format', '-show_streams', file], { encoding: 'utf8' });
-}
-
-/** Per-frame MD5 of the decoded video stream. */
-function decodedFrameMd5s(file) {
-  const out = execFileSync('ffmpeg', ['-v', 'error', '-i', file, '-map', '0:v:0', '-f', 'framemd5', '-'], {
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  return out.split('\n').filter((l) => l && !l.startsWith('#')).map((l) => l.split(',').pop().trim());
-}
-
-function decodedAudioMd5(file) {
-  return execFileSync('ffmpeg', ['-v', 'error', '-i', file, '-map', '0:a:0', '-f', 'md5', '-'], { encoding: 'utf8' }).trim();
+function session(profileDir, port, label, fn) {
+  return launch({ profileDir, port, label, readyGlobal: '__persist', consolePrefix: '[persist]', log }, fn);
 }
 
 async function main() {
   fs.rmSync(ARTIFACTS, { recursive: true, force: true });
   fs.mkdirSync(ARTIFACTS, { recursive: true });
-  await build();
-  const { server, port } = await serve();
-  const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'persist-profile-')); // fresh, empty IndexedDB
+  const buildDir = await buildPage('persistence-page');
+  const { server, port } = await serve(buildDir, ARTIFACTS);
+  const profileDir = freshProfile('persist'); // fresh, empty IndexedDB
   const t0 = Date.now();
   let s1, s2, failures;
   try {
@@ -163,7 +62,6 @@ async function main() {
   const dEdit = decodedFrameMd5s(mp4('session2-restored-edited.mp4'));
   const audio = Object.fromEntries(files.map((f) => [f, decodedAudioMd5(mp4(f))]));
 
-  const diffCount = (a, b, from, to) => { let n = 0; for (let i = from; i < to; i++) if (a[i] !== b[i]) n++; return n; };
 
   const editedSceneDeltas = s1.sceneWindows.map((w) => ({
     ...w,
