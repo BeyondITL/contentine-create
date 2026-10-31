@@ -1,6 +1,6 @@
 # Contributing to Contentine Create
 
-Thank you for considering a contribution — this project genuinely needs collaborators, and well-scoped help is very welcome. This guide is long because we want your first PR to go smoothly; the short version is: **pick a labelled issue, say you want it, open a focused PR with evidence, and you'll hear back within 48 hours.**
+Thank you for considering a contribution — this project genuinely needs collaborators, and well-scoped help is very welcome. This guide is long because we want your first PR to go smoothly; the short version is: **pick a labelled issue, comment `/claim`, open a focused PR with evidence, and a maintainer aims to respond within 2 working days.**
 
 ## Ways to help right now
 
@@ -24,13 +24,26 @@ That's it — the whole UI runs frontend-only, and most of the codebase (stores,
 
 Backend (optional): `cp admin_config.php.template admin_config.php` (keep it **one level above** the webroot; never commit it), fill in values, then `cd backend && composer install`.
 
-## Claiming an issue
+## How to claim an issue
 
 To avoid two people doing the same work:
 
-1. Comment **"I'd like to work on this"** on the issue. A maintainer assigns it to you and adds the `claimed` label.
-2. Please have **one open `good first issue` at a time** so newcomers get a fair shot.
-3. If there's no activity for **14 days**, we may unassign it so someone else can pick it up — just comment if you need more time, that's completely fine.
+1. Comment **`/claim`** on an open, unassigned issue. A bot assigns it to you and adds the `claimed` label. If someone already has it, the bot tells you who.
+2. Open a **draft PR** early and link the issue (`Closes #123`).
+3. If there is **no linked PR and no comment from you for 7 days**, the claim is released automatically so someone else can pick it up. A quick progress comment keeps it.
+4. Changed your mind? Comment **`/unclaim`** to hand it back. No hard feelings.
+
+Please hold **one open `good first issue` at a time** so newcomers get a fair shot.
+
+## Levels
+
+Issues carry a difficulty label so you can pick something that fits:
+
+| Label | What it means |
+|---|---|
+| `level: 1` | A first contribution. Scoped to one file or component, and the issue gives you the command that proves it works. |
+| `level: 2` | Wiring or hardening across a few files. Expect to read some surrounding code first. |
+| `level: 3` | Open hard problems with no known answer yet. See [Hard problems in ROADMAP.md](ROADMAP.md#hard-problems-level-3); propose an approach in the issue before writing much code. |
 
 ## Branch, commit, and PR conventions
 
@@ -38,6 +51,10 @@ To avoid two people doing the same work:
 - **Commits** follow [Conventional Commits](https://www.conventionalcommits.org/): `fix(stock): …`, `feat(voices): …`, `docs(readme): …`.
 - **One change per PR.** Keep diffs small and reviewable; split unrelated work.
 - In the PR description, say **what** changed and **why**, and link the issue (`Closes #123`).
+
+## Changelog fragments
+
+Don't edit `CHANGELOG.md` directly. Add one file per PR in [`changelog.d/`](changelog.d/README.md) named `<PR or issue number>.<type>.md`, where type is `added`, `changed`, `fixed`, `removed`, or `docs`, with one or two lines for the release notes. Maintainers fold the fragments into `CHANGELOG.md` at release. CI-only, test-only, and typo PRs don't need one.
 
 ## The quality gate (run this before you open a PR)
 
@@ -53,26 +70,27 @@ Beyond green checks, this repo has two rules that define its whole culture:
 
 The other laws — weights-license discipline (L4: read a model's *weights* license, record it in `LICENSES.md` + `NOTICE`, flag unmet obligations **off**), browser-native core (L2), and root-cause fixes with no swallowed errors — are in [CLAUDE.md](CLAUDE.md). You do **not** need Claude Code to contribute; the laws are just good engineering practice.
 
-## Review promise
+## Review expectations
 
-- A maintainer gives you a **first response within 48 hours**.
+- Maintainers **aim to give a first response within 2 working days**. This is a small team, so it is an aim, not a guarantee; if a week passes with no reply, a polite ping on the PR is welcome.
 - **"Changes requested"** means we'd like specific edits before merging — it's normal and not a rejection. Reply in the thread, push updates to the same branch, and re-request review.
 - We squash-merge, so your branch history doesn't need to be tidy.
 
-## Using AI assistance
+## AI-assisted contributions
 
 AI help (Claude, Copilot, etc.) is **allowed and welcome** — this repo is itself AI-assisted. In return:
 
-- **Disclose it** in the PR description (one line is enough).
-- **Understand and be able to explain every line** you submit. If a reviewer asks "why this?", the answer is yours, not the tool's.
+- **Describe it honestly** in the PR template's "AI assistance" section: which tool, what it did, and what you did (reviewed the diff, ran the tests, wrote parts). "None" is a fine answer.
+- **You must understand every line** you submit and be able to answer review questions on it yourself. If a reviewer asks "why this?", the answer is yours, not the tool's.
+- **Never claim tests you did not run.** "How you tested" lists commands you actually ran and what they printed. If you couldn't run something, say so.
 - **Answer review comments yourself** — don't paste them back into a bot and relay the output unread.
 - Don't add AI co-author trailers unless you want them.
 
-This mirrors how projects like Homebrew and Kubernetes handle AI contributions, and it keeps quality consistent.
+PRs that misdescribe how they were made or tested may be closed. Using AI is fine; hiding it isn't.
 
 ## Recognition
 
-Contributors are listed in the README and credited in release notes. Your merged work is public on your GitHub profile — useful for internships, CVs, and portfolios. After your first merge, we'll usually suggest a good follow-up issue.
+Every contributor appears on GitHub's [contributor graph](https://github.com/BeyondITL/contentine-create/graphs/contributors) (linked from the README) and is credited in release notes. Your merged work is public on your GitHub profile — useful for internships, CVs, and portfolios. After your first merge, we'll usually suggest a good follow-up issue.
 
 ## Knowledge graph (optional)
 

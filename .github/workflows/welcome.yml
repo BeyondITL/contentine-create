@@ -19,9 +19,9 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           issue-message: >
             Thanks for opening your first issue! A maintainer will triage it soon.
-            If you'd like to work on it, comment "I'd like to work on this" and we'll
-            assign it to you. See CONTRIBUTING.md for setup and the quality bar.
+            If you'd like to work on it, comment /claim and it's yours.
+            See CONTRIBUTING.md for setup and the quality bar.
           pr-message: >
-            Thanks for your first pull request! A maintainer will review within 48 hours.
+            Thanks for your first pull request! Maintainers aim to give a first response within 2 working days.
             Please make sure the checks pass and you've followed CONTRIBUTING.md — including
             the MP4-evidence rule for any render/generation flow. Welcome aboard. 🎬

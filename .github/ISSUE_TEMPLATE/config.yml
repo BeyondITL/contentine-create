@@ -3,6 +3,9 @@ contact_links:
   - name: Questions & ideas
     url: https://github.com/BeyondITL/contentine-create/discussions
     about: Ask questions or discuss ideas in Discussions.
+  - name: Want to contribute?
+    url: https://github.com/BeyondITL/contentine-create/blob/main/CONTRIBUTING.md#how-to-claim-an-issue
+    about: Comment /claim on an open issue to take it; no new issue needed.
   - name: Security report
     url: https://github.com/BeyondITL/contentine-create/security/advisories/new
     about: Report vulnerabilities privately — not in a public issue.
