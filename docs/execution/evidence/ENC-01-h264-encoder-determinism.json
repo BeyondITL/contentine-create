@@ -1,0 +1,38 @@
+{
+  "test_id": "ENC-01",
+  "outcome": "pass",
+  "verification_class": "controlled_simulation",
+  "input_kind": "synthetic fixture (90 generated 1280x720 frames)",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chromium (Playwright channel=chrome) HeadlessChrome/153.0.0.0",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264 avc1.420028, hardwareAcceleration=prefer-software",
+    "audio_encoder": "Opus 48 kHz stereo (AAC encoder unavailable in this Chromium)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "bab67050122c6974"
+  },
+  "real_components": [
+    "Chromium WebCodecs VideoEncoder avc1.42001f prefer-software"
+  ],
+  "substituted_components": [
+    "synthetic frames instead of the cartoon compositor"
+  ],
+  "observed": {
+    "variable_bitrate": "different bytes every run",
+    "constant_bitrate": "different bytes every run",
+    "latencyMode_realtime": "different bytes every run",
+    "flush_after_every_frame": "different bytes every run",
+    "bitrateMode_quantizer": "unsupported for avc1 in this build",
+    "cartoon_render_packets": "keyframe (packet 0) identical; 1021/1062 packets differ in size between two renders"
+  },
+  "claim_supported": "Encoded H.264 bytes from this Chromium's software encoder are not reproducible run-to-run, independent of Contentine; MP4 byte identity is an environment property.",
+  "claim_not_supported": [
+    "behaviour of macOS Chrome (owner previously observed byte identity there)",
+    "hardware encoders"
+  ]
+}
