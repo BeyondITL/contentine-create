@@ -19,6 +19,7 @@ import type {
   PartialRenderReport,
 } from '@/engine/cartoon';
 import type { PlanSnapshot } from '@/lib/cartoon/plan-history-db';
+import { takeMatchesLine } from '@/lib/cartoon/take-identity';
 
 type EngineModule = typeof import('@/engine/cartoon');
 type EntranceType = NonNullable<CharacterBlock['entrance']>['type'];
@@ -28,10 +29,7 @@ const takeKey = (line: { id: string; takeRef?: string }) => line.takeRef ?? line
 
 /** True when a line's on-screen text no longer matches its synthesized take. */
 function hasStaleTake(scene: ScenePlanScene, takes: Map<string, VoiceTake>): boolean {
-  return scene.dialogue.some((line) => {
-    const t = takes.get(takeKey(line));
-    return !t || t.text !== line.text;
-  });
+  return scene.dialogue.some((line) => !takeMatchesLine(takes.get(takeKey(line)), line));
 }
 
 /**
@@ -242,8 +240,7 @@ export default function CartoonTimelineEditor() {
         const nextTakes = new Map(takesRef.current);
         for (const scene of staleScenes) {
           for (const line of scene.dialogue) {
-            const t = nextTakes.get(takeKey(line));
-            if (!t || t.text !== line.text) nextTakes.delete(takeKey(line));
+            if (!takeMatchesLine(nextTakes.get(takeKey(line)), line)) nextTakes.delete(takeKey(line));
           }
         }
         const synthed = await engine.synthesizeTakes(workingPlan, nextTakes, (done, total) => {
