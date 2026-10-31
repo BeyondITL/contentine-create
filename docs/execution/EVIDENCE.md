@@ -10,6 +10,14 @@ gitignored); records carry their sizes and SHA-256.
 | A02 visual revision | pass | real_execution | same | [A02](evidence/A02-visual-revision-linux-chromium153.json) | Scene-2-only visual edit re-renders only scene 2; other scenes' decoded frames and the decoded narration are bit-identical |
 | A05 reopen after browser restart | pass | real_execution | Linux, headless Chrome 153, real on-disk IndexedDB | [A05](evidence/A05-reopen-after-browser-restart-linux-chromium153.json) | Project saved, Chrome quit and relaunched: same plan and take bytes, zero TTS calls, valid re-export with identical pre-encode frames and narration, post-reopen edit reuses restored scene chunks bit-exactly |
 | A06 storage failure injection | pass | controlled_simulation | same | [A06](evidence/A06-storage-failure-injection-linux-chromium153.json) | Stale CAS, mid-transaction write failure, evicted render cache, corrupted/missing take, workspace isolation, tampered bundle — each yields a stable code or warning and keeps the last good revision |
+| A04 cache identity | pass | real_execution | Linux, headless Chrome 153 | [A04](evidence/A04-cache-identity-linux-chromium153.json) | Background bytes swapped under the same ref re-render that scene (365/365 frames) while scene 2 is reused bit-exactly; a speed-only change re-voices exactly one line. Global settings: contract-tested only |
+| A07 stale revision | pass | real_execution | same | [A07](evidence/A07-stale-revision-linux-chromium153.json) | Patch against a stale revision → REVISION_CONFLICT; the other writer's revision survives |
+| A08 duplicate delivery | pass | contract_test | Node + fake-indexeddb, fake ports | [A08](evidence/A08-duplicate-delivery.json) | Same key → one outcome; changed payload rejected; concurrent duplicate render_start → one run (bug found and fixed) |
+| A09 scope / authorization | pass | real_execution | Linux, headless Chrome 153 | [A09](evidence/A09-scope-and-authorization.json) | Project grant and workspace scoping enforced for inspect, cancel and artifacts |
+| A10 invalid input | pass | contract_test | Node | [A10](evidence/A10-invalid-input.json) | Unknown/immutable/non-finite/oversized input rejected before writes; no partial patches |
+| A11 cancel / renderer loss | pass | real_execution | Linux, headless Chrome 153 | [A11](evidence/A11-cancel-and-renderer-loss-linux-chromium153.json) | Real mid-render cancel keeps the previous MP4; a render killed by quitting Chrome becomes `interrupted` after relaunch |
+| A12 real assistant (G5) | pass | real_execution | Claude Code 2.1.316 + app build in Chrome 153 | [A12](evidence/A12-real-assistant-g5-linux-chromium153.json) | Claude Code over MCP (no shell/file tools) inspected, proposed, hit a conflict from a live UI edit, re-inspected, applied, rendered and saved a verified MP4 |
+| A13 bridge auth boundary | pass | contract_test | Node | [A13](evidence/A13-bridge-auth-boundary.json) | Origin/Host checks, single-use pairing, hashed revocable tokens, fail-closed tools, confined artifact paths |
 | ENC-01 encoder determinism | pass | controlled_simulation | same | [ENC-01](evidence/ENC-01-h264-encoder-determinism.json) | This Chromium's software H.264 output varies run-to-run on identical frames; MP4 byte identity is an environment property |
 
 ## Reproduce
@@ -21,10 +29,12 @@ node frontend/src/engine/cartoon/harness/run-c-m1.mjs          # gate on structu
 CM1_REQUIRE_BYTE_IDENTICAL=1 node frontend/src/engine/cartoon/harness/run-c-m1.mjs  # also require identical MP4 bytes
 node frontend/src/engine/cartoon/harness/run-persistence.mjs   # A05 + A06 (~3.5 min, quits and relaunches Chrome)
 (cd frontend && npx vitest run src/lib/cartoon/project-store.test.ts)  # storage contract
+node frontend/src/engine/cartoon/harness/run-commands.mjs     # A04 A07 A09 A11 (~3.5 min)
+(cd frontend && npm run build) && (cd bridge && npm ci) && node frontend/src/engine/cartoon/harness/run-assistant.mjs  # A12/G5 (needs `claude` CLI)
+(cd frontend && npx vitest run) && (cd bridge && npm test)        # contract tests (A08 A10 A13)
 ```
 
 ## Not yet evidenced
 
-A03 narration edits · A04 cache identity · A06 under real quota/eviction or process kill · A07–A11 failure/recovery ·
-A12 assistant integration · A13 bridge auth · A15 offline claim · A16 unsupported browser ·
-A18 merge verification (blocked: B1).
+A03 narration-text edit end to end · A06 under real quota/eviction · A14 live account auth (not applicable: local workspace) ·
+A15 offline claim · A16 unsupported browser/codec · A17 approvals (not implemented) · A18 merge verification (blocked: B1).

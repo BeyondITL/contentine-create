@@ -8,9 +8,9 @@ project, apply a bounded scene edit, render a playable MP4, reopen the complete 
 | Baseline | `main` @ `ececdb0` (2026-10-25), unchanged as of 2026-10-31 |
 | Baseline checks | lint 0 errors / 11 warnings · vitest 20/20 · `next build` passes |
 | Render environment proven | Linux, headless Chromium 153, software H.264 + Opus (see `evidence/A01-*`) |
-| Current work | WP4 — shared typed commands + run lifecycle (WP3 in review: G3 green, evidence A05/A06) |
-| Ready to push (B1) | `wp2/harness-portability` → `wp3/project-store` (stacked) · `fix/take-identity` (independent) |
-| Checks on `wp3/project-store` | lint 0 errors / 11 warnings (baseline) · vitest 32/32 · tsc clean · `next build` passes |
+| Current work | WP7 — demo + review package. G2–G5 green locally (evidence A01–A13); nothing merged (B1) |
+| Ready to push (B1) | stack `wp2/harness-portability` → `wp3/project-store` → `wp4/commands` (includes `bridge/`) · `fix/take-identity` (independent; also cherry-picked into wp4) |
+| Checks on `wp4/commands` | lint 0 errors / 11 warnings (baseline) · vitest 68/68 · bridge 6/6 · tsc clean · `next build` passes (/cartoon 217 kB first load, +4 kB) |
 
 ## Blockers
 

@@ -1,0 +1,115 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp4/commands",
+  "timestamp_utc": "2026-10-31",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chrome (Playwright channel=chrome) HeadlessChrome/153.0.0.0",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264, prefer-software",
+    "audio_encoder": "Opus",
+    "storage": "IndexedDB (on-disk Chrome profile)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "67ab5c9086e694c1"
+  },
+  "tested_commit": "ad581125c8344e03d370bb49fcd72f2686505287",
+  "input_kind": "shipped_example (reference plan; intro background replaced by a generated gradient PNG asset)",
+  "commands_or_steps": [
+    "cd frontend && npm ci --ignore-scripts && cd .. && bash scripts/setup-assets.sh",
+    "node frontend/src/engine/cartoon/harness/run-commands.mjs"
+  ],
+  "artifacts": {
+    "dir": "artifacts/commands/ (gitignored)",
+    "report": "commands-report.json",
+    "mp4_sha256": {
+      "cmd-1-full": "9ab67a20abfc218ab8d506e230b620d3e49d51675c11dbaf75f02aeffb4afc52",
+      "cmd-2-move": "c2c023f78561055ee502c647ca851caf3ce3412ce7b8f2ea6e4c9fd7e19b559e",
+      "cmd-3-asset": "3f27574376a40e14e7f1ff7e038ff8d785e6eafd99763fe9d8b6e33ffe035bd2",
+      "cmd-4-speed": "6274a4565986f47e2bd189e4595dd971d91ff51dbf5d03b1885d4cad78f63b19",
+      "cmd-5-after-restart": "50045e0083b0ccc9b2cc6b84c3d5ab9f5b44a99252b9b0b5e538366118a2eccd"
+    }
+  },
+  "test_id": "A11",
+  "outcome": "pass",
+  "verification_class": "real_execution",
+  "real_components": [
+    "CartoonCommandService (same instance type the editor uses)",
+    "real Kokoro voice port",
+    "real WebCodecs renderer port + render worker",
+    "IndexedDB project store",
+    "Mediabunny demux verification",
+    "ffprobe/ffmpeg re-verification in Node",
+    "Chrome process quit mid-render and relaunched on the same profile"
+  ],
+  "substituted_components": [
+    "renderer-unavailable path is contract-tested with a fake port"
+  ],
+  "expected": "Cancel mid-render \u2192 cancelled, no artifact, previous output kept; browser closed mid-run \u2192 interrupted after reconnect; new render works.",
+  "observed": {
+    "cancel": {
+      "first": {
+        "runId": "run_737e5cb0-926f-4942-9122-1de5ba897948",
+        "state": "cancelled",
+        "alreadyTerminal": false
+      },
+      "second": {
+        "runId": "run_737e5cb0-926f-4942-9122-1de5ba897948",
+        "state": "cancelled",
+        "alreadyTerminal": true
+      },
+      "finalState": "cancelled",
+      "progressAtCancel": 10,
+      "artifactAfterCancel": "RUN_NOT_SUCCEEDED",
+      "previousArtifactStillValid": true
+    },
+    "killed_mid_run": {
+      "runId": "run_29fb0c2a-355f-4929-a23a-96a672d3580b",
+      "revision": 7,
+      "stateWhenKilled": "running",
+      "progress": 10
+    },
+    "after_relaunch": {
+      "interrupted": [
+        "run_29fb0c2a-355f-4929-a23a-96a672d3580b"
+      ],
+      "orphan": {
+        "state": "interrupted",
+        "failure": {
+          "code": "INTERRUPTED",
+          "message": "Run was interrupted; start a new render from the same revision"
+        },
+        "events": [
+          "queued",
+          "running",
+          "interrupted"
+        ]
+      },
+      "rerender": {
+        "state": "succeeded",
+        "partial": {
+          "mode": "partial",
+          "rerenderedScenes": [
+            "scene-duo"
+          ],
+          "reusedScenes": [
+            "scene-intro",
+            "scene-outro"
+          ],
+          "fullRenderReason": null
+        }
+      }
+    }
+  },
+  "comparison_semantics": "Run records + artifact retrieval + sha256 of the previous artifact.",
+  "claim_supported": "A real render cancelled at ~12% ends cancelled with no artifact while the previous MP4 stays retrievable bit-exact; a render orphaned by quitting Chrome is reported interrupted (never succeeded) after relaunch, and a fresh render then succeeds.",
+  "claim_not_supported": [
+    "GPU device loss",
+    "bridge-level disconnect during a render (contract-tested: in-flight calls fail RENDERER_UNAVAILABLE)"
+  ],
+  "blocker": null
+}
