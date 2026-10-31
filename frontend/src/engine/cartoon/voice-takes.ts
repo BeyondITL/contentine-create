@@ -16,6 +16,9 @@ import { sha256Hex } from './scene-plan';
 import { stampVisemesFromText, type VisemeStamp } from './visemes';
 import { takeKeyForLine } from './timing';
 import type { ScenePlan } from './scene-plan';
+import { takeMatchesLine } from '@/lib/cartoon/take-identity';
+
+export { takeMatchesLine };
 
 export interface VoiceTake {
   /** Take key: `takeRef ?? dialogue.id`. */
@@ -51,10 +54,10 @@ async function hashPcm(pcm: Float32Array): Promise<string> {
 }
 
 /**
- * Synthesize takes for every dialogue line in the plan that doesn't already
- * have one in `existing`. Lines whose take key is already present are left
- * untouched — this is what makes VO-replace surgical: swap one take, only
- * that line changes.
+ * Synthesize takes for every dialogue line in the plan that has no matching
+ * take in `existing` (missing, or synthesized from different text/voice/speed
+ * — see `takeMatchesLine`). Matching takes are left untouched — this is what
+ * makes VO-replace surgical: swap one take, only that line changes.
  */
 export async function synthesizeTakes(
   plan: ScenePlan,
@@ -64,7 +67,7 @@ export async function synthesizeTakes(
   const takes = new Map<string, VoiceTake>(existing);
 
   const lines = plan.scenes.flatMap((s) => s.dialogue);
-  const missing = lines.filter((line) => !takes.has(takeKeyForLine(line)));
+  const missing = lines.filter((line) => !takeMatchesLine(takes.get(takeKeyForLine(line)), line));
   if (missing.length === 0) return takes;
 
   // Dynamic import — Law L8 / static-export: TTS never lands in the page bundle.
