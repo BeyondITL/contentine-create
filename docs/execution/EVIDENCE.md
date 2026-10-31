@@ -22,17 +22,32 @@ gitignored); records carry their sizes and SHA-256.
 
 ## Reproduce
 
+Prerequisites (not installed by the scripts): Node 20+; Chrome or Chromium for
+Playwright (the harnesses use `channel: 'chrome'` and fall back to Playwright's
+bundled Chromium); `ffmpeg` and `ffprobe` on PATH; network access to
+github/jsdelivr (setup script) and huggingface.co (Kokoro model, first voicing);
+ports 3000 and 47821 free. A12 additionally needs the `claude` CLI installed
+**and signed in**. Run everything from the repository root. `npm ci
+--ignore-scripts` reproduces the locked dependency tree exactly (the README's
+`npm install` is fine for development).
+
 ```bash
-cd frontend && npm ci --ignore-scripts && cd ..
-bash scripts/setup-assets.sh
-node frontend/src/engine/cartoon/harness/run-c-m1.mjs          # gate on structure (default)
-CM1_REQUIRE_BYTE_IDENTICAL=1 node frontend/src/engine/cartoon/harness/run-c-m1.mjs  # also require identical MP4 bytes
-node frontend/src/engine/cartoon/harness/run-persistence.mjs   # A05 + A06 (~3.5 min, quits and relaunches Chrome)
-(cd frontend && npx vitest run src/lib/cartoon/project-store.test.ts)  # storage contract
-node frontend/src/engine/cartoon/harness/run-commands.mjs     # A04 A07 A09 A11 (~3.5 min)
-(cd frontend && npm run build) && (cd bridge && npm ci) && node frontend/src/engine/cartoon/harness/run-assistant.mjs  # A12/G5 (needs `claude` CLI)
-(cd frontend && npx vitest run) && (cd bridge && npm test)        # contract tests (A08 A10 A13)
+(cd frontend && npm ci --ignore-scripts) && bash scripts/setup-assets.sh
+(cd frontend && npx vitest run) && (cd bridge && npm ci && npm test)   # contract tests: A08 A10 A13 (~10 s)
+
+node frontend/src/engine/cartoon/harness/run-c-m1.mjs          # A01 A02 (~3 min); CM1_REQUIRE_BYTE_IDENTICAL=1 also requires identical MP4 bytes
+node frontend/src/engine/cartoon/harness/run-persistence.mjs   # A05 A06 (~3.5 min); also writes artifacts/persistence/project-bundle.ccproj
+node frontend/src/engine/cartoon/harness/run-commands.mjs      # A04 A07 A09 A11 (~3.5 min)
+
+# A12 / G5 — needs the .ccproj from run-persistence.mjs (or pass another bundle as the first argument)
+(cd frontend && npm run build)
+node frontend/src/engine/cartoon/harness/run-assistant.mjs     # (~1 min after the build)
+
+node frontend/src/engine/cartoon/harness/run-demo.mjs          # recorded UI demo (~7–8 min on a fresh profile)
 ```
+
+Each harness prints a PASS/FAIL list and `GATE: GREEN|RED`, and writes its report
+under `artifacts/<name>/` (gitignored).
 
 ## Not yet evidenced
 

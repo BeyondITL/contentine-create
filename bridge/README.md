@@ -27,7 +27,9 @@ starts again; **Disconnect** revokes it.
 Options: `--port` (default 47821), `--allow-origin URL` (add an app origin;
 defaults: `https://create.contentine.ai`, `http://localhost:3000`,
 `http://127.0.0.1:3000`), `--state-dir` (default `~/.contentine-bridge`),
-`--export-dir` (default `~/Contentine Exports`), `--revoke-all`.
+`--export-dir` (default `~/Contentine Exports`), `--pairing-file FILE` (also
+write the current pairing code to FILE, mode 0600 — used by the automated
+harness), `--revoke-all`. Requires Node 20+.
 
 ## Tools
 
@@ -72,6 +74,10 @@ Command contract, patch format and error codes: `docs/cartoon-commands.md`.
 ## Tests
 
 ```bash
-npm test                                   # bridge contract tests (ws client as the tab)
-node ../frontend/src/engine/cartoon/harness/run-assistant.mjs   # real assistant + real app (see header)
+npm test     # in bridge/: contract tests (a ws client plays the tab)
 ```
+
+The end-to-end check with a real assistant and the real app is
+`run-assistant.mjs`, run from the repository root after building the app and
+producing a sample bundle — see the "Reproduce" section of
+`docs/execution/EVIDENCE.md`.

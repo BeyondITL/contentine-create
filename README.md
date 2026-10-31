@@ -75,7 +75,7 @@ A flow counts as "working" only if it produces a **downloaded, ffprobe-valid MP4
 
 | Requirement | Minimum | Notes |
 |---|---|---|
-| Node | 18+ | for the frontend app |
+| Node | 20+ | for the frontend app and the optional assistant bridge |
 | Browser | recent Chrome / Edge | WebGPU for the fast path; WASM fallback otherwise |
 | PHP + MySQL/MariaDB | PHP 8.0+ | **optional** — only for sign-in, credits, and sync |
 
