@@ -56,3 +56,6 @@ mcp.json
 .claude/verify-on-stop
 *.tar.gz
 internal-docs*
+
+# Local verification-harness output (MP4s, probes, frame hashes)
+artifacts/

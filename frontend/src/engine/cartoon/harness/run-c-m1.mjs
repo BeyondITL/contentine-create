@@ -17,6 +17,7 @@
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -122,8 +123,30 @@ function normalizeProbe(text) {
     .join('\n');
 }
 
+/**
+ * Structural probe: also drops the fields that depend on the encoder's rate
+ * control (`bit_rate`, `size`). Codec, profile, dimensions, frame/packet
+ * counts, durations and timebases must still match exactly.
+ *
+ * Why: on Linux Chromium 153 the software H.264 WebCodecs encoder is not
+ * byte-reproducible run-to-run even for identical input frames (measured in
+ * variable, constant and realtime modes, and with a flush after every frame;
+ * quantizer mode is unsupported for avc1 there). Byte identity is therefore an
+ * environment property, reported separately below and enforceable with
+ * CM1_REQUIRE_BYTE_IDENTICAL=1 on environments where it holds.
+ */
+function structuralProbe(text) {
+  return normalizeProbe(text)
+    .split('\n')
+    .filter((line) => !/^(bit_rate|size)=/.test(line))
+    .join('\n');
+}
+
+const REQUIRE_BYTE_IDENTICAL = process.env.CM1_REQUIRE_BYTE_IDENTICAL === '1';
+
+/** Portable digest (the old `md5 -q` shell-out only exists on macOS). */
 function md5(file) {
-  return execFileSync('md5', ['-q', file], { encoding: 'utf8' }).trim();
+  return createHash('md5').update(fs.readFileSync(file)).digest('hex');
 }
 
 async function main() {
@@ -173,18 +196,21 @@ async function main() {
   fs.copyFileSync(path.join(ARTIFACTS, 'render1.mp4'), path.join(ARTIFACTS, 'reference.mp4'));
 
   const probes = {};
+  const structural = {};
   const md5s = {};
   for (const name of ['render1', 'render2', 'edited-partial']) {
     const file = path.join(ARTIFACTS, `${name}.mp4`);
     const raw = ffprobe(file);
     fs.writeFileSync(path.join(ARTIFACTS, `ffprobe-${name}.txt`), raw);
     probes[name] = normalizeProbe(raw);
+    structural[name] = structuralProbe(raw);
     md5s[name] = md5(file);
   }
 
   // Node-side re-verification (don't trust a single comparison site).
   const framesIdentical = h1.length === h2.length && h1.every((h, i) => h === h2[i]);
   const ffprobeIdentical = probes.render1 === probes.render2 && probes.render1.length > 0;
+  const ffprobeStructureIdentical = structural.render1 === structural.render2 && structural.render1.length > 0;
   const bytesIdentical = md5s.render1 === md5s.render2;
   const mb1 = JSON.stringify(evidence.render1.probe);
   const mb2 = JSON.stringify(evidence.render2.probe);
@@ -201,7 +227,13 @@ async function main() {
     mediabunnyProbesIdentical: mb1 === mb2,
     mediabunnyProbe: evidence.render1.probe,
     ffprobeIdentical,
+    ffprobeStructureIdentical,
     mp4BytesIdentical: bytesIdentical,
+    byteIdentityRequired: REQUIRE_BYTE_IDENTICAL,
+    comparisonSemantics:
+      'Gate: pre-encode frame SHA-256s, mixed-audio PCM hash, mediabunny stream probe and ffprobe ' +
+      'structure (codec/profile/dims/frames/packets/durations) must match across two renders. ' +
+      'Encoded MP4 bytes are reported; they gate only when CM1_REQUIRE_BYTE_IDENTICAL=1.',
     mp4Md5: md5s,
     takes: evidence.takes,
   };
@@ -230,13 +262,14 @@ async function main() {
   log(`frames rendered           : ${h1.length} @ ${evidence.plan.scenes.length} scenes`);
   log(`2× frame hashes identical : ${framesIdentical}`);
   log(`2× audio mix identical    : ${evidence.determinism.audioMixIdentical}`);
-  log(`stream probes identical   : mediabunny=${mb1 === mb2} ffprobe=${ffprobeIdentical}`);
-  log(`mp4 byte-identical (md5)  : ${bytesIdentical}`);
+  log(`stream probes identical   : mediabunny=${mb1 === mb2} ffprobe-structure=${ffprobeStructureIdentical} ffprobe-full=${ffprobeIdentical}`);
+  log(`mp4 byte-identical (md5)  : ${bytesIdentical}${REQUIRE_BYTE_IDENTICAL ? ' (REQUIRED)' : ' (reported; set CM1_REQUIRE_BYTE_IDENTICAL=1 to gate)'}`);
   log(`partial re-render mode    : ${evidence.partial.report.mode} (${evidence.partial.report.rerenderedScenes.join(', ') || '-'})`);
   log(`hash deltas confined      : ${deltasConfined}`);
   log(`artifacts                 : ${ARTIFACTS}`);
 
-  if (!framesIdentical || !evidence.determinism.audioMixIdentical || mb1 !== mb2 || !ffprobeIdentical || !deltasConfined) {
+  const byteGateOk = !REQUIRE_BYTE_IDENTICAL || (bytesIdentical && ffprobeIdentical);
+  if (!framesIdentical || !evidence.determinism.audioMixIdentical || mb1 !== mb2 || !ffprobeStructureIdentical || !deltasConfined || !byteGateOk) {
     log('GATE: RED');
     process.exit(1);
   }

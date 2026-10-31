@@ -145,9 +145,13 @@ async function renderFrames(req: RenderFramesRequest): Promise<void> {
     bitrate: req.bitrate,
     framerate: fps,
     latencyMode: 'quality',
-    // Software encode is byte-reproducible run-to-run (C-M1 harness measured a
-    // 1-byte drift in the first keyframe without this pin); hardware paths may
-    // also differ across driver versions. Determinism beats speed here (L6).
+    // Prefer software encode: on macOS Chrome it measured byte-reproducible
+    // run-to-run (the C-M1 harness saw a 1-byte keyframe drift without this
+    // pin). It is NOT byte-reproducible everywhere — Linux Chromium 153's
+    // software H.264 rate control varies P-frame sizes between identical runs.
+    // Pre-encode frames, mixed PCM and stream structure stay deterministic (L6);
+    // encoded bytes are an encoder/environment property.
+    // Hardware paths may also differ across driver versions.
     hardwareAcceleration: 'prefer-software',
     avc: { format: 'avc' },
   });
