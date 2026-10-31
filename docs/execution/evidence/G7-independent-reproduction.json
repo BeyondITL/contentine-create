@@ -1,0 +1,60 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp4/commands",
+  "tested_commit": "0deb460",
+  "timestamp_utc": "2026-10-31",
+  "test_id": "G7-reproduction",
+  "outcome": "pass",
+  "verification_class": "real_execution",
+  "verifier": "independent agent (fresh context, did not write the code or docs) \u2014 not a human tester",
+  "input_kind": "shipped_example (reference plan / sample bundle produced by run-persistence.mjs)",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chrome 153 headless via Playwright",
+    "node": "v22.23.4",
+    "assistant": "Claude Code CLI 2.1.316"
+  },
+  "commands_or_steps": [
+    "git clone --branch wp4/commands <repo> fresh dir",
+    "(cd frontend && npm ci --ignore-scripts)  # 23 s",
+    "bash scripts/setup-assets.sh  # 5 s",
+    "(cd frontend && npx vitest run)  # 69/69, 6 s",
+    "(cd bridge && npm ci && npm test)  # 6/6",
+    "run-commands.mjs  # GREEN 20/20, 204 s",
+    "run-persistence.mjs  # GREEN 23/23, 199 s",
+    "(cd frontend && npm run build)  # 88 s",
+    "run-assistant.mjs  # GREEN 14/14, 55 s"
+  ],
+  "real_components": [
+    "fresh clone",
+    "real Chrome",
+    "real Kokoro TTS",
+    "WebCodecs",
+    "IndexedDB",
+    "Claude Code over MCP"
+  ],
+  "substituted_components": [
+    "Playwright plays the person in run-assistant.mjs"
+  ],
+  "observed": {
+    "all_gates": "GREEN",
+    "doc_gaps_found": [
+      "run-assistant.mjs dependency on the run-persistence bundle documented only in a script header",
+      "README npm install vs EVIDENCE npm ci",
+      "unstated prerequisites: ffmpeg/ffprobe, Playwright Chrome, signed-in claude, free ports, network",
+      "README Node 18 vs bridge Node 20",
+      "bridge README working directory",
+      "--pairing-file undocumented",
+      "setup-assets.sh silently saved a 404 page for an unused shard"
+    ],
+    "doc_gaps_fixed_in": "2d2915f"
+  },
+  "claim_supported": "The documented steps reproduce setup, all contract tests, the command-layer, persistence and real-assistant harnesses in a fresh clone, run by a verifier who did not write them; the gaps it found were fixed.",
+  "claim_not_supported": [
+    "reproduction by a human",
+    "macOS/Windows",
+    "re-run of the verifier after the doc fixes (doc-only + setup-script change; setup script re-run clean separately)"
+  ],
+  "blocker": null
+}

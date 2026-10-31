@@ -18,6 +18,7 @@ gitignored); records carry their sizes and SHA-256.
 | A11 cancel / renderer loss | pass | real_execution | Linux, headless Chrome 153 | [A11](evidence/A11-cancel-and-renderer-loss-linux-chromium153.json) | Real mid-render cancel keeps the previous MP4; a render killed by quitting Chrome becomes `interrupted` after relaunch |
 | A12 real assistant (G5) | pass | real_execution | Claude Code 2.1.316 + app build in Chrome 153 | [A12](evidence/A12-real-assistant-g5-linux-chromium153.json) | Claude Code over MCP (no shell/file tools) inspected, proposed, hit a conflict from a live UI edit, re-inspected, applied, rendered and saved a verified MP4 |
 | A13 bridge auth boundary | pass | contract_test | Node | [A13](evidence/A13-bridge-auth-boundary.json) | Origin/Host checks, single-use pairing, hashed revocable tokens, fail-closed tools, confined artifact paths |
+| G7 reproduction | pass | real_execution (agent verifier, not human) | fresh clone, Chrome 153, Claude Code | [G7](evidence/G7-independent-reproduction.json) | An independent agent followed only the docs: setup, 69+6 tests, and the commands / persistence / real-assistant harnesses all GREEN; 7 doc gaps found and fixed |
 | ENC-01 encoder determinism | pass | controlled_simulation | same | [ENC-01](evidence/ENC-01-h264-encoder-determinism.json) | This Chromium's software H.264 output varies run-to-run on identical frames; MP4 byte identity is an environment property |
 
 ## Reproduce

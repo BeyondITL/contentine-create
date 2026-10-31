@@ -8,7 +8,7 @@ project, apply a bounded scene edit, render a playable MP4, reopen the complete 
 | Baseline | `main` @ `ececdb0` (2026-10-25), unchanged as of 2026-10-31 |
 | Baseline checks | lint 0 errors / 11 warnings · vitest 20/20 · `next build` passes |
 | Render environment proven | Linux, headless Chromium 153, software H.264 + Opus (see `evidence/A01-*`) |
-| Current work | Milestone engineering complete on local branches: G2–G6 green, G7 ready for an independent verifier; nothing pushed or merged (B1, B2) |
+| Current work | Milestone engineering complete on local branches: G2–G7 green (G7 by an independent agent verifier, not a human); nothing pushed or merged (B1, B2) |
 | Ready to push (B1) | stack `wp2/harness-portability` → `wp3/project-store` → `wp4/commands` (includes `bridge/`) · `fix/take-identity` (independent; also cherry-picked into wp4) |
 | Checks on `wp4/commands` | lint 0 errors / 11 warnings (baseline) · vitest 69/69 · bridge 6/6 · tsc clean · `next build` passes · G5 re-run green at f69acf5 · persistence harness green after refactor |
 | PR bodies | `docs/execution/PRS.md` (order, bases, template-conformant bodies) |

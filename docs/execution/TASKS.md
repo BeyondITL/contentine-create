@@ -15,7 +15,7 @@ States: queued · running · review · merged · blocked · deferred · supersed
 | WP4 | Shared typed commands + run lifecycle (G4) | WP3 | review | branch `wp4/commands` (stacked on `wp3/project-store`) | A04, A07, A08, A09, A10, A11; 68 unit/contract tests, mutation-checked | Push + PR when B1 clears. Editor Re-roll commits through the same commands |
 | WP5 | Real assistant (MCP) integration (G5) | WP4 | review | `bridge/` + tab client on `wp4/commands` | A12 (Claude Code, real app), A13; bridge tests in CI | Push + PR when B1 clears |
 | WP6 | Failure / recovery matrix (G6) | WP3–WP5 | review | — | A04, A06–A11 (each labelled real_execution / controlled_simulation / contract_test) | Remaining: A03 narration-edit run, A15 offline claim, A16 unsupported browser |
-| WP7 | Repeatable demo + launch package (G7) | G2–G6 | review | `wp4/commands` | `run-demo.mjs` recording + labelled cut; sample `samples/cartoon/dot-and-dash.plan.json`; docs/launch kit; clean-clone setup + tests reproduced in 39 s | G7 still needs a verifier who did not write the steps (an agent verifier is acceptable; a human tester belongs to WP8). Publication/deploy need owner approval |
+| WP7 | Repeatable demo + launch package (G7) | G2–G6 | review | `wp4/commands` | demo recording + labelled cut; sample plan; launch kit; G7 record (independent agent verifier, all GREEN; doc gaps fixed in 2d2915f) | Publication, tester outreach and production deploy need owner approval. Human replication belongs to WP8 |
 | WP8 | Real tester feedback | outreach authorization | blocked (authorization) | — | — | Draft invitation in docs/launch/cartoon-assistant-launch-kit.md; send only after approval. No users simulated |
 
 ## PR #44 review note (to post when access returns)
