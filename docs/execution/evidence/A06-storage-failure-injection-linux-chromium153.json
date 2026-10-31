@@ -1,0 +1,108 @@
+{
+  "repository": "BeyondITL/contentine-create",
+  "base_commit_sha": "ececdb0ef5e53521f66f212d824951aa88526270",
+  "tested_branch": "wp3/project-store",
+  "tested_commit": "7b0b31dd33f7f2e050193db00f5b16c358d86eee",
+  "timestamp_utc": "2026-10-31",
+  "environment": {
+    "os": "Linux x86_64 (Ubuntu container)",
+    "browser": "Chrome (Playwright channel=chrome) HeadlessChrome/153.0.0.0, persistent profile, fresh per run",
+    "headed": false,
+    "gpu_backend": "none (headless, software)",
+    "video_encoder": "WebCodecs H.264, prefer-software",
+    "audio_encoder": "Opus (no AAC encoder in this Chromium)",
+    "storage": "IndexedDB (real, on-disk Chrome profile)",
+    "node": "v22.23.4",
+    "model_ids": [
+      "onnx-community/Kokoro-82M-v1.0-ONNX-timestamped (Kokoro TTS)"
+    ],
+    "dependency_lock_sha256_prefix": "67ab5c9086e694c1"
+  },
+  "input_kind": "shipped_example (frontend/src/engine/cartoon/harness/reference-plan.ts)",
+  "commands_or_steps": [
+    "cd frontend && npm ci --ignore-scripts",
+    "bash scripts/setup-assets.sh",
+    "node frontend/src/engine/cartoon/harness/run-persistence.mjs"
+  ],
+  "artifacts": {
+    "dir": "artifacts/persistence/ (gitignored)",
+    "report": "persistence-report.json",
+    "sizes_bytes": {
+      "session1-render.mp4": 5392403,
+      "session2-restored-full.mp4": 5190232,
+      "session2-restored-edited.mp4": 5211323,
+      "project-bundle.ccproj": 12353619
+    },
+    "mp4_sha256": {
+      "session1-render.mp4": "f222c9f993107887a7a7a5d2f82161d989c6915dc05b6abd714e3d3722425d9a",
+      "session2-restored-full.mp4": "bef6650f3a0ff682adf5c983a88f09c58d50e86e9b2a37e9009a7302c733189a",
+      "session2-restored-edited.mp4": "e20b9f88406eaad6be99ab86e0d1db36c7a3e79a444269ed6f602f86ee76da0a"
+    }
+  },
+  "test_id": "A06",
+  "outcome": "pass",
+  "verification_class": "controlled_simulation",
+  "real_components": [
+    "real Chrome IndexedDB",
+    "project-store save/load/bundle code paths"
+  ],
+  "substituted_components": [
+    "failures injected by monkeypatching IDBObjectStore.prototype.put (manifest write throws QuotaExceededError) and by directly flipping/deleting stored blob rows; not real quota exhaustion or real disk corruption"
+  ],
+  "expected": "Every injected storage failure yields a stable error code or an explicit warning and preserves the last good revision; damage stays inside its workspace; a tampered backup writes nothing.",
+  "observed": {
+    "cases": [
+      {
+        "case": "stale-revision-save",
+        "expected": "REVISION_CONFLICT",
+        "observed": "REVISION_CONFLICT",
+        "pass": true
+      },
+      {
+        "case": "manifest-write-failure",
+        "expected": "STORAGE_FAILED and previous revision intact",
+        "observed": "STORAGE_FAILED; revision 2, planHash unchanged",
+        "pass": true
+      },
+      {
+        "case": "render-cache-evicted",
+        "expected": "loads with warning, no lastRender",
+        "observed": "loaded; lastRender=false; warnings=1",
+        "pass": true,
+        "detail": "Last render was not restored (MISSING_ASSET: Rendered MP4 is missing from storage); the next render will be a full render."
+      },
+      {
+        "case": "voice-take-corrupted",
+        "expected": "CORRUPT_ASSET",
+        "observed": "CORRUPT_ASSET",
+        "pass": true
+      },
+      {
+        "case": "voice-take-missing",
+        "expected": "MISSING_ASSET",
+        "observed": "MISSING_ASSET",
+        "pass": true
+      },
+      {
+        "case": "workspace-isolation",
+        "expected": "original workspace still loads clean",
+        "observed": "revision 2, warnings 0",
+        "pass": true
+      },
+      {
+        "case": "tampered-bundle",
+        "expected": "CORRUPT_ASSET, nothing written",
+        "observed": "CORRUPT_ASSET; written=false",
+        "pass": true
+      }
+    ]
+  },
+  "comparison_semantics": "Each case records expected vs observed code and re-loads the project to check revision/planHash.",
+  "claim_supported": "In real Chrome IndexedDB, a failed save mid-transaction leaves the previous revision loadable; stale writers get REVISION_CONFLICT; an evicted render cache degrades to a warning; corrupted or missing pinned voice takes are refused (CORRUPT_ASSET/MISSING_ASSET) rather than re-synthesized; damage in one workspace does not reach another; a tampered bundle is rejected with nothing written.",
+  "claim_not_supported": [
+    "real quota exhaustion or browser-initiated eviction",
+    "crash/kill of the browser process mid-transaction (abort path only)",
+    "recovery UX in the editor"
+  ],
+  "blocker": null
+}

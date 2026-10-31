@@ -8,8 +8,9 @@ project, apply a bounded scene edit, render a playable MP4, reopen the complete 
 | Baseline | `main` @ `ececdb0` (2026-10-25), unchanged as of 2026-10-31 |
 | Baseline checks | lint 0 errors / 11 warnings · vitest 20/20 · `next build` passes |
 | Render environment proven | Linux, headless Chromium 153, software H.264 + Opus (see `evidence/A01-*`) |
-| Current work | WP3 — durable, recoverable project storage |
-| Next mergeable change | `wp2/harness-portability`: C-M1 harness runs on Linux; explicit comparison semantics |
+| Current work | WP4 — shared typed commands + run lifecycle (WP3 in review: G3 green, evidence A05/A06) |
+| Ready to push (B1) | `wp2/harness-portability` → `wp3/project-store` (stacked) · `fix/take-identity` (independent) |
+| Checks on `wp3/project-store` | lint 0 errors / 11 warnings (baseline) · vitest 32/32 · tsc clean · `next build` passes |
 
 ## Blockers
 
