@@ -1,30 +1,58 @@
 name: Bug report
 description: Something doesn't work as expected
-labels: ["bug"]
+labels: ["bug", "needs-triage"]
 body:
   - type: textarea
     id: what
     attributes:
       label: What happened?
-      description: What you expected vs. what actually happened.
+      description: One or two sentences on the problem.
     validations: { required: true }
   - type: textarea
     id: repro
     attributes:
-      label: Steps to reproduce
+      label: Minimal reproduction
+      description: The fewest steps (or the smallest script / project file) that still show the bug. Start from a fresh page load if you can.
       placeholder: |
         1. Go to …
         2. Click …
         3. See …
     validations: { required: true }
-  - type: input
-    id: env
+  - type: textarea
+    id: expected
     attributes:
-      label: Environment
-      description: Browser + version, OS, and whether WebGPU is available (chrome://gpu).
+      label: Expected behaviour
     validations: { required: true }
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the exact error text if there is one.
+    validations: { required: true }
+  - type: input
+    id: browser
+    attributes:
+      label: Browser, version, and OS
+      placeholder: Chrome 131 on Windows 11
+    validations: { required: true }
+  - type: dropdown
+    id: webgpu
+    attributes:
+      label: WebGPU status
+      description: In Chrome/Edge check chrome://gpu ("WebGPU" row); in Firefox check about:support.
+      options:
+        - WebGPU available
+        - WebGPU not available (WASM fallback)
+        - Not sure
+    validations: { required: true }
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU
+      description: GPU model and driver if you know it (also shown on the app's Settings → Device tab).
+      placeholder: NVIDIA RTX 3060, driver 560.94
   - type: textarea
     id: evidence
     attributes:
       label: Evidence
-      description: Console errors, a failing output file, or screenshots.
+      description: Console errors, a failing output file (or its ffprobe output), or screenshots.

@@ -1,0 +1,53 @@
+name: Task (maintainers)
+description: A scoped piece of work ready for a contributor to /claim
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For maintainers writing up work for contributors. A good task can be picked up
+        by someone who has never seen the codebase: name the files, give the command
+        that proves it works, and say exactly when it is done. Apply the matching
+        `level:` label after filing.
+  - type: textarea
+    id: what
+    attributes:
+      label: What is wrong / what to do
+      description: The problem or the change, in a few sentences. Link related issues.
+    validations: { required: true }
+  - type: textarea
+    id: where
+    attributes:
+      label: Where in the code
+      description: Files, components, or functions to start from.
+      placeholder: |
+        - frontend/src/engine/...
+        - frontend/src/components/...
+    validations: { required: true }
+  - type: textarea
+    id: verify
+    attributes:
+      label: How to reproduce, or the test command
+      description: Steps that show the problem, or the command that will pass when it is fixed.
+      render: shell
+      placeholder: cd frontend && npx vitest run src/engine/voice/kokoro-visemes.test.ts
+    validations: { required: true }
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: A checklist a reviewer can tick off. For render or generation flows, include the ffprobe-valid MP4.
+      value: |
+        - [ ]
+        - [ ] Tests added or updated, and the command above passes
+        - [ ] Changelog fragment in `changelog.d/`
+    validations: { required: true }
+  - type: dropdown
+    id: level
+    attributes:
+      label: Level
+      description: See "Levels" in CONTRIBUTING.md.
+      options:
+        - "level: 1 (first contribution: one file or component, with a test command)"
+        - "level: 2 (wiring or hardening across a few files)"
+        - "level: 3 (open hard problem)"
+    validations: { required: true }
