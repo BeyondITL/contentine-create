@@ -1,4 +1,6 @@
 version: 2
+# Grouped so routine bumps arrive as one PR per ecosystem per week instead of
+# one PR per package. Majors get their own group because they need a real look.
 updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
@@ -6,14 +8,25 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     labels: ["dependencies"]
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
+      npm-major:
+        update-types: ["major"]
   - package-ecosystem: "composer"
     directory: "/backend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
     labels: ["dependencies"]
+    groups:
+      composer-minor-patch:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     labels: ["dependencies"]
+    groups:
+      github-actions:
+        patterns: ["*"]

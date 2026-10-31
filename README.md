@@ -130,6 +130,10 @@ Good places to start:
 - The open items in [ROADMAP.md](ROADMAP.md) — the URL→video visuals story, the script-parser hardening, and accessibility are all well-scoped.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — dev setup, the "no facades / evidence before done" bar, and the [graphify](https://github.com/Graphify-Labs/graphify) knowledge-graph tooling this repo uses.
 
+## Contributors
+
+Everyone who lands a change is listed on GitHub's [contributor graph](../../graphs/contributors) and credited in release notes. Want to join them? Start with [CONTRIBUTING.md](CONTRIBUTING.md): comment `/claim` on an issue and it's yours.
+
 ## License
 
 Code is licensed under **[AGPL-3.0](LICENSE)** — use, modify, and self-host freely, but if you run a modified version as a network service, you must publish your source. Third-party model weights keep their own licenses (see [`NOTICE`](NOTICE)). Contributions are accepted under the [Contributor License Agreement](CLA.md).

@@ -80,7 +80,7 @@ export default function CalendarPage() {
   }, [setCurrentMonth, setSelectedDate]);
 
   // Safe reference to posts array
-  const safePosts = posts ?? [];
+  const safePosts = useMemo(() => posts ?? [], [posts]);
 
   // Compute platform counts for the filter pills
   const platformCounts = useMemo(() => {
