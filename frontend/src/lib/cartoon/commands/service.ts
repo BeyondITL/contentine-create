@@ -289,6 +289,11 @@ export class CartoonCommandService {
     this.newRunId = opts.newRunId ?? (() => `run_${crypto.randomUUID()}`);
   }
 
+  /** Whether this page can render right now (reported to the assistant bridge). */
+  rendererStatus(): Promise<{ ok: boolean; reason?: string }> {
+    return this.renderer.available().catch((e: Error) => ({ ok: false, reason: e.message }));
+  }
+
   /** Single entry point for transports (MCP bridge). Unknown names are rejected. */
   async dispatch(name: string, ctx: CommandContext, args: unknown): Promise<unknown> {
     switch (name as CommandName) {

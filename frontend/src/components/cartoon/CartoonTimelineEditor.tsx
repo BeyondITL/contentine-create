@@ -9,6 +9,7 @@ import TimelinePreview from './TimelinePreview';
 import SceneStrip, { type SceneDirtyKind } from './SceneStrip';
 import SceneInspector from './SceneInspector';
 import PlanHistoryPanel from './PlanHistoryPanel';
+import AssistantBridgePanel from './AssistantBridgePanel';
 import type {
   ScenePlan,
   ScenePlanScene,
@@ -86,6 +87,8 @@ export default function CartoonTimelineEditor() {
     session ? clonePlan(session.project?.plan ?? session.plan) : null,
   );
   const [conflict, setConflict] = useState<string | null>(null);
+  /** Informational: the assistant changed or rendered this project. */
+  const [assistantNotice, setAssistantNotice] = useState<string | null>(null);
   const [engineReady, setEngineReady] = useState(false);
   const [compiled, setCompiled] = useState<CompiledTimeline | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(session?.plan.scenes[0]?.id ?? null);
@@ -393,6 +396,7 @@ export default function CartoonTimelineEditor() {
       setRenderedHash(loaded.lastRender.result.planHash);
       setWorkingPlan(clonePlan(loaded.plan));
       setConflict(null);
+      setAssistantNotice(null);
       updateSession({
         plan: clonePlan(loaded.lastRender.renderedPlan),
         takes: loaded.takes,
@@ -405,6 +409,24 @@ export default function CartoonTimelineEditor() {
       setRerollError(err instanceof Error ? err.message : 'Could not load the saved project.');
     }
   }, [workingPlan, updateSession, toast]);
+
+  // An assistant changed this project through the bridge → offer the latest revision.
+  useEffect(() => {
+    const projectId = workingPlan?.id;
+    if (!projectId) return;
+    const onChange = (ev: Event) => {
+      const d = (ev as CustomEvent<{ projectId: string; command: string; revision?: number }>).detail;
+      if (d.projectId !== projectId) return;
+      if (d.revision !== undefined && projectRef.current && d.revision <= projectRef.current.revision) return;
+      setAssistantNotice(
+        d.command === 'render_start'
+          ? 'Your assistant started a render of this project. Load the latest saved version when it finishes to see it.'
+          : 'Your assistant changed this project. Load the latest saved version to see its edit — unsaved edits here will be replaced.',
+      );
+    };
+    window.addEventListener('contentine:project-changed', onChange);
+    return () => window.removeEventListener('contentine:project-changed', onChange);
+  }, [workingPlan?.id]);
 
   // ── History ──────────────────────────────────────────────────────────────
   const handleRestore = useCallback((snap: PlanSnapshot) => {
@@ -529,6 +551,19 @@ export default function CartoonTimelineEditor() {
               </div>
             )}
 
+            {assistantNotice && !conflict && (
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                <p className="text-xs text-text dark:text-white break-words">{assistantNotice}</p>
+                <button
+                  type="button"
+                  onClick={handleLoadLatest}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface dark:bg-[#2a2a2a] text-xs font-medium text-text dark:text-white hover:bg-border-light dark:hover:bg-[#333] transition-colors"
+                >
+                  <RefreshCw size={13} /> Load latest saved version
+                </button>
+              </div>
+            )}
+
             {conflict && (
               <div className="p-3 bg-danger/5 border border-danger/20 rounded-lg space-y-2">
                 <div className="flex items-start gap-2">
@@ -584,6 +619,7 @@ export default function CartoonTimelineEditor() {
 
         {/* Right: inspector + history */}
         <div className="flex flex-col min-h-0 gap-4 overflow-y-auto">
+          <AssistantBridgePanel projectId={workingPlan.id} disabled={busy} />
           <SceneInspector
             scene={selectedScene}
             sceneIndex={selectedIndex}
