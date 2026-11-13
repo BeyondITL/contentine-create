@@ -65,11 +65,26 @@ export function getAiDisclosureSettings(): AiDisclosureSettings {
   if (typeof window === 'undefined') {
     return { presetId: 'voice_script', customText: '', enabled: true };
   }
-  let presetId = (localStorage.getItem(LS_PRESET_ID) as AiDisclosurePresetId | null) ?? 'voice_script';
-  if (!AI_DISCLOSURE_PRESETS.some((p) => p.id === presetId)) presetId = 'voice_script';
-  const customText = localStorage.getItem(LS_CUSTOM_TEXT) ?? '';
-  const enabled = localStorage.getItem(LS_ENABLED) !== 'false'; // default true
-  return { presetId, customText, enabled };
+  let presetId: AiDisclosurePresetId | null = null;
+  let customText: string | null = null;
+  let enabledRaw: string | null = null;
+  try {
+    // Merely reading window.localStorage can throw a SecurityError when
+    // storage is blocked (private mode, sandboxed iframe, blocked site data).
+    const storage = window.localStorage;
+    presetId = storage.getItem(LS_PRESET_ID) as AiDisclosurePresetId | null;
+    customText = storage.getItem(LS_CUSTOM_TEXT);
+    enabledRaw = storage.getItem(LS_ENABLED);
+  } catch {
+    // Storage unavailable — fall through to the defaults below.
+  }
+  let preset = presetId ?? 'voice_script';
+  if (!AI_DISCLOSURE_PRESETS.some((p) => p.id === preset)) preset = 'voice_script';
+  return {
+    presetId: preset,
+    customText: customText ?? '',
+    enabled: enabledRaw !== 'false', // default true
+  };
 }
 
 /** Persist disclosure settings. */
