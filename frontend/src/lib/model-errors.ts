@@ -53,7 +53,7 @@ export async function requestPersistentStorage(): Promise<boolean> {
 }
 
 const QUOTA_RE = /quota\s*exceeded|quotaexceedederror|exceeded the quota|insufficient storage|no space|not enough (?:disk |storage )?space/i;
-const GPU_RE = /webgpu|gpu adapter|no adapter|requestadapter|device lost|shader-?f16|out of memory|oom|buffer size|maxstoragebuffer|maxbuffersize/i;
+const GPU_RE = /webgpu|gpu adapter|no adapter|requestadapter|device lost|shader-?f16|out of memory|\boom\b|buffer size|maxstoragebuffer|maxbuffersize/i;
 const NETWORK_RE = /failed to fetch|networkerror|network error|load failed|fetch(?:ing)? (?:failed|error)|err_(?:internet|network|connection|name_not)|http (?:4|5)\d\d|\b(?:404|403|429|500|502|503)\b|timed? ?out/i;
 
 /** Classify a caught error into its true kind. Quota wins over everything. */
