@@ -207,8 +207,8 @@ async function renderFrames(req: RenderFramesRequest): Promise<void> {
 
 /**
  * Zero the creation/modification wall-clock stamps in mvhd/tkhd/mdhd boxes so
- * identical inputs produce byte-identical MP4s (Law L6; reproducible-build
- * practice). Walks the box tree in place.
+ * the container adds no variation of its own (Law L6; reproducible-build
+ * practice). Encoded bytes can still differ by encoder (ENC-01). Walks the box tree in place.
  */
 function zeroMp4Dates(bytes: Uint8Array): void {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
