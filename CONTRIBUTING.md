@@ -11,7 +11,7 @@ Thank you for considering a contribution — this project genuinely needs collab
 
 ## 5-minute setup (no model weights needed)
 
-**Prerequisites:** Node 18+ and a recent Chrome/Edge (WebGPU for the fast path; there's a WASM fallback). PHP 8.0+ and MySQL/MariaDB are needed **only** if you work on the optional backend.
+**Prerequisites:** Node 22.12+ (CI runs Node 22) and a recent Chrome/Edge (WebGPU for the fast path; there's a WASM fallback). PHP 8.0+ and MySQL/MariaDB are needed **only** if you work on the optional backend.
 
 ```bash
 git clone https://github.com/BeyondITL/contentine-create.git
