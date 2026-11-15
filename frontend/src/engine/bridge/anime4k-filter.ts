@@ -7,9 +7,9 @@
  * inspired by the Anime4K/CAS approach — no GPL app code embedded, per R-89).
  *
  * ── Determinism gate (Law L6 — READ BEFORE WIRING TO EXPORT) ─────────────────
- * L6 requires the exported MP4 to be byte-identical for the same project file on
- * ANY device. The cartoon export encoder is SOFTWARE precisely to guarantee that
- * (render-worker.ts). A GPU pass is deterministic run-to-run on the SAME device,
+ * L6 aims for identical pre-encode frames for the same project file on
+ * ANY device (encoded MP4 bytes are an encoder property; see ENC-01 and
+ * render-worker.ts). A GPU pass is deterministic run-to-run on the SAME device,
  * but WebGPU does NOT guarantee bit-identical rasterization/texture-sampling
  * across GPU vendors and drivers. Therefore this filter MUST NOT be baked into
  * the deterministic export path — doing so would break the cross-device golden.

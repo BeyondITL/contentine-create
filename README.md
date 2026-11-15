@@ -30,7 +30,7 @@
 Contentine Create turns an idea, a script, or a URL into finished short-form content **without sending your media to a server**. The heavy AI runs in your browser on WebGPU (with a WASM fallback): text-to-speech, speech-to-text, small language models for scripting, talking-head avatars, and a deterministic cartoon/motion-graphics renderer. An **optional** PHP/MySQL backend handles sign-in, credits, and commerce — but it is never required to *create*.
 
 - **On-device by default.** Your script, your voice recording, your render — none of it needs to leave the machine. No server GPU bill; works offline after the models are cached.
-- **Deterministic rendering.** Video is rendered frame-accurately (`seek()` per frame → `OffscreenCanvas` → `WebCodecs` → [Mediabunny](https://github.com/Vanilagy/mediabunny)), not screen-captured. The same project file produces the same output on any device.
+- **Deterministic rendering.** Video is rendered frame-accurately (`seek()` per frame → `OffscreenCanvas` → `WebCodecs` → [Mediabunny](https://github.com/Vanilagy/mediabunny)), not screen-captured. In the same browser, the same project file produces the same frames and audio. Encoded MP4 bytes can differ between browsers and runs, because each browser brings its own H.264 encoder, and cross-browser frame identity is still being measured (see the roadmap).
 - **License-disciplined.** Every shipped model's **weights** license is read and recorded in [`NOTICE`](NOTICE) / [`LICENSES.md`](LICENSES.md). Anything with unmet obligations ships behind a feature flag that defaults to **off**.
 
 ## See it in action
