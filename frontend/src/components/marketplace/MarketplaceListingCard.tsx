@@ -2,6 +2,7 @@
 
 import { Star, Download, ShoppingCart, CheckCircle } from 'lucide-react';
 import type { MarketplaceListing, MarketplaceCategory } from '@/types';
+import { formatCount } from '@/lib/format-count';
 
 interface MarketplaceListingCardProps {
   listing: MarketplaceListing;
@@ -22,13 +23,6 @@ const CATEGORY_MAP: Record<MarketplaceCategory, { label: string; color: string; 
 function formatPrice(cents: number): string {
   if (cents === 0) return 'Free';
   return `$${(cents / 100).toFixed(2)}`;
-}
-
-/** Format download count with K/M suffix. */
-function formatDownloads(count: number): string {
-  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
-  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
-  return String(count);
 }
 
 /** Marketplace listing card with preview, price, rating, and buy action. */
@@ -107,7 +101,7 @@ export default function MarketplaceListingCard({
             )}
             <span className="inline-flex items-center gap-0.5 text-[11px] text-text-muted">
               <Download size={10} />
-              {formatDownloads(listing.downloads)}
+              {formatCount(listing.downloads)}
             </span>
           </div>
         </div>

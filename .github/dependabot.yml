@@ -12,6 +12,9 @@ updates:
       # @types/node must match the Node major CI runs (22). Bump both together.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # Next 16 drops `next lint` and expects React 19: a planned upgrade, not a bot bump.
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
     groups:
       npm-minor-patch:
         update-types: ["minor", "patch"]
