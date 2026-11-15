@@ -85,7 +85,7 @@ export async function logout(): Promise<void> {
 export async function getToken(): Promise<string | null> {
   try {
     const auth = getClient();
-    return await auth.getTokenSilently();
+    return (await auth.getTokenSilently()) ?? null;
   } catch {
     return null;
   }
